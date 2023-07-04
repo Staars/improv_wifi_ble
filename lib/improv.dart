@@ -41,6 +41,30 @@ enum improvErrors {
 class Improv extends ChangeNotifier {
   Improv({Key? key, required this.device});
 
+  final FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
+  final BluetoothDevice device;
+  bool connected = true;
+  bool supportsIdentify = false;
+  improvState _state = improvState._;
+  improvErrors _error = improvErrors.noError;
+  BluetoothService? _svc;
+  List<BluetoothCharacteristic> _chrs = [];
+  String _ssid = '';
+  String _password = '';
+
+  static final Guid _svcUUID = Guid('00467768-6228-2272-4663-277478268000');
+  static final Guid _currentStateUUID =
+      Guid('00467768-6228-2272-4663-277478268001');
+  static final Guid _errorStateUUID =
+      Guid('00467768-6228-2272-4663-277478268002');
+  static final Guid _RPCCommandUUID =
+      Guid('00467768-6228-2272-4663-277478268003');
+  static final Guid _RPCResultUUID =
+      Guid('00467768-6228-2272-4663-277478268004');
+  static final Guid _capabilitiesUUID =
+      Guid('00467768-6228-2272-4663-277478268005');
+  static final List<Guid> scanFilter = List.from([_svcUUID]);
+
   int _getChecksum(List<int> _list) {
     int _checksum = 0;
     for (int i in _list) {
@@ -177,30 +201,6 @@ class Improv extends ChangeNotifier {
     _writeRPCCommand(Uint8List.fromList(_command));
     developer.log("Start commissioning ... {$_command}");
   }
-
-  final FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
-  final BluetoothDevice device;
-  bool connected = true;
-  bool supportsIdentify = false;
-  improvState _state = improvState._;
-  // improvErrors _error = improvErrors.noError;
-  // BluetoothService? _svc;
-  List<BluetoothCharacteristic> _chrs = [];
-  String _ssid = '';
-  String _password = '';
-
-  static final Guid _svcUUID = Guid('00467768-6228-2272-4663-277478268000');
-  static final Guid _currentStateUUID =
-      Guid('00467768-6228-2272-4663-277478268001');
-  static final Guid _errorStateUUID =
-      Guid('00467768-6228-2272-4663-277478268002');
-  static final Guid _RPCCommandUUID =
-      Guid('00467768-6228-2272-4663-277478268003');
-  static final Guid _RPCResultUUID =
-      Guid('00467768-6228-2272-4663-277478268004');
-  static final Guid _capabilitiesUUID =
-      Guid('00467768-6228-2272-4663-277478268005');
-  static final List<Guid> scanFilter = List.from([_svcUUID]);
 }
 
 class ImprovDialog extends StatefulWidget {
