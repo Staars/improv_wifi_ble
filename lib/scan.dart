@@ -16,6 +16,7 @@ class ScannerScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: const Text('Scan for Improv Devices'),
         actions: [
           ElevatedButton(
@@ -112,6 +113,7 @@ class DeviceScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(device.name),
         actions: <Widget>[
           StreamBuilder<BluetoothDeviceState>(
@@ -127,7 +129,7 @@ class DeviceScreen extends StatelessWidget {
                   break;
                 case BluetoothDeviceState.disconnected:
                   onPressed = () => device.connect();
-                  text = 'CONNECT';
+                  text = 'Connect to Wifi';
                   break;
                 default:
                   onPressed = null;

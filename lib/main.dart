@@ -75,7 +75,7 @@ class _ImprovHomePageState extends State<ImprovHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            TextButton(
+            ElevatedButton(
               style: TextButton.styleFrom(
                 // backgroundColor: Color.fromARGB(255, 51, 19, 255),
                 // foregroundColor: Color.fromARGB(255, 240, 238, 255),
@@ -88,7 +88,7 @@ class _ImprovHomePageState extends State<ImprovHomePage> {
               onPressed: () {
                 _navigateToNextScreen(context);
               },
-              child: const Text('Connect device to Wi-Fi'),
+              child: const Text('Scan for devices'),
             ),
           ],
         ),
@@ -123,7 +123,7 @@ class BluetoothOffScreen extends StatelessWidget {
                   ?.copyWith(color: Colors.white),
             ),
             ElevatedButton(
-              child: const Text('TURN ON'),
+              child: const Text('Turn on'),
               onPressed: Platform.isAndroid
                   ? () => FlutterBluePlus.instance.turnOn()
                   : null,
