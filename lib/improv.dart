@@ -6,7 +6,24 @@ import 'dart:developer' as developer;
 import 'dart:typed_data';
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'
+    show
+        BuildContext,
+        ChangeNotifier,
+        Column,
+        Container,
+        Dialog,
+        ElevatedButton,
+        InputDecoration,
+        Key,
+        MainAxisAlignment,
+        Navigator,
+        OutlineInputBorder,
+        State,
+        StatefulWidget,
+        Text,
+        TextField,
+        Widget;
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -33,7 +50,6 @@ class Improv extends ChangeNotifier {
   }
 
   Uint8List _makePayload(List<int> _val) {
-    Uint8List _list = Uint8List.fromList(_val);
     _val.add(_getChecksum(_val));
     return Uint8List.fromList(_val);
   }
@@ -167,8 +183,8 @@ class Improv extends ChangeNotifier {
   bool connected = true;
   bool supportsIdentify = false;
   improvState _state = improvState._;
-  improvErrors _error = improvErrors.noError;
-  BluetoothService? _svc;
+  // improvErrors _error = improvErrors.noError;
+  // BluetoothService? _svc;
   List<BluetoothCharacteristic> _chrs = [];
   String _ssid = '';
   String _password = '';
