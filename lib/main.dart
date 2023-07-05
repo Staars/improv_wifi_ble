@@ -10,7 +10,7 @@ void main() {
   if (Platform.isAndroid) {
     WidgetsFlutterBinding.ensureInitialized();
     [
-      Permission.location,
+      // Permission.location,
       Permission.storage,
       Permission.bluetooth,
       Permission.bluetoothConnect,

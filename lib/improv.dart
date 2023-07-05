@@ -113,7 +113,17 @@ class Improv extends ChangeNotifier {
 
   void _writeRPCCommand(List<int> _cmd) async {
     BluetoothCharacteristic c = _getChr(_RPCCommandUUID);
-    await c.write(_cmd, withoutResponse: true);
+    int _bytesLeft = _cmd.length;
+    developer.log("RPC buffer length: {$_bytesLeft}");
+    for (int i = 0; i < _cmd.length; i += 20) {
+      await Future.delayed(const Duration(milliseconds: 50));
+      int _chunkSize = 20; // always use smallest possible MTU as chunk size
+      if (_bytesLeft < _chunkSize) {
+        _chunkSize = _bytesLeft;
+      }
+      _bytesLeft -= 20;
+      await c.write(_cmd.sublist(i, i + _chunkSize), withoutResponse: true);
+    }
     notifyListeners();
   }
 
@@ -175,9 +185,7 @@ class Improv extends ChangeNotifier {
   }
 
   void identify() {
-    Uint8List _cmnd = Uint8List.fromList([2, 0, 0]);
-    _cmnd[2] = _getChecksum(_cmnd);
-    _writeRPCCommand(_cmnd);
+    _writeRPCCommand(_makePayload([2, 0]));
   }
 
   void setSSID(String ssid) {
