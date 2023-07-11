@@ -11,7 +11,7 @@ void main() {
     WidgetsFlutterBinding.ensureInitialized();
     [
       // Permission.location,
-      Permission.storage,
+      // Permission.storage,
       Permission.bluetooth,
       Permission.bluetoothConnect,
       Permission.bluetoothScan
@@ -31,8 +31,7 @@ class ImprovApp extends StatelessWidget {
     return MaterialApp(
       title: 'Improv Wifi',
       theme: ThemeData(
-        colorScheme:
-            ColorScheme.fromSeed(seedColor: Color.fromARGB(255, 6, 35, 224)),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
       home: StreamBuilder<BluetoothState>(

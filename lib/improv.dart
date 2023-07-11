@@ -29,7 +29,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 enum improvState { _, Authorization, Authorized, Provisioning, Provisioned }
 
-enum improvErrors {
+enum Improvrrors {
   noError,
   invalidPacket,
   unknownCommand,
@@ -46,7 +46,7 @@ class Improv extends ChangeNotifier {
   bool connected = true;
   bool supportsIdentify = false;
   improvState _state = improvState._;
-  improvErrors _error = improvErrors.noError;
+  Improvrrors _error = Improvrrors.noError;
   BluetoothService? _svc;
   List<BluetoothCharacteristic> _chrs = [];
   String _ssid = '';
@@ -91,22 +91,22 @@ class Improv extends ChangeNotifier {
     int _i = _val[0];
     _state = improvState.values[_i];
     developer.log(
-      "Improve: current state {$_i} {$_state}",
+      "Improv: current state {$_i} {$_state}",
     );
     notifyListeners();
   }
 
   void _getErrorState(List<int> _val) {
-    _error = improvErrors.values[_val[0]];
+    _error = Improvrrors.values[_val[0]];
     developer.log(
-      "Improve: error state {$_val[0]}",
+      "Improv: error state {$_val[0]}",
     );
     notifyListeners();
   }
 
   void _getRPCResult(List<int> _val) {
     developer.log(
-      "Improve: RPC result {$_val}",
+      "Improv: RPC result {$_val}",
     );
     notifyListeners();
   }
@@ -129,38 +129,42 @@ class Improv extends ChangeNotifier {
 
   void setup() async {
     flutterBlue.stopScan();
-    developer.log("Improve: will connect to {$device.name}");
+    developer.log("Improv: will connect to {$device.name}");
     await device.connect();
-    developer.log("Improve: did connect to {$device.name}");
+    developer.log("Improv: did connect to {$device.name}");
     List<BluetoothService> bluetoothServices = await device.discoverServices();
+    developer.log("Improv: did discover services");
     for (BluetoothService s in bluetoothServices) {
       if (s.uuid == _svcUUID) {
         _svc = s;
         _chrs = s.characteristics;
+        developer.log("Improv: got characteristics");
       }
     }
+    developer.log("Improv: found service uuid");
     for (BluetoothCharacteristic c in _chrs) {
       if (c.uuid == _capabilitiesUUID) {
-        List<int> _val = await c.read();
-        supportsIdentify = _val[0] == 1;
-        developer.log("Improve: supports identify {$supportsIdentify}");
+        developer.log("Improv: will read identify property");
+        List<int> value = await c.read();
+        supportsIdentify = value[0] == 1;
+        developer.log("Improv: supports identify {$supportsIdentify}");
       } else if (c.uuid == _currentStateUUID) {
-        List<int> _val = await c.read();
-        _getImprovState(_val);
+        List<int> value = await c.read();
+        _getImprovState(value);
         await c.setNotifyValue(true);
         notifyListeners();
-        developer.log("Improve: subscribe to characteristic: current state");
+        developer.log("Improv: subscribe to characteristic: current state");
         c.value.listen((value) {
           _getImprovState(value);
         });
       } else if (c.uuid == _errorStateUUID) {
         await c.setNotifyValue(true);
-        developer.log("Improve: subscribe to characteristic: error state");
+        developer.log("Improv: subscribe to characteristic: error state");
         c.value.listen((value) {
           _getErrorState(value);
         });
       } else if (c.uuid == _RPCResultUUID) {
-        developer.log("Improve: subscribe to characteristic: RPC result");
+        developer.log("Improv: subscribe to characteristic: RPC result");
         await c.setNotifyValue(true);
         c.value.listen((value) {
           _getRPCResult(value);
