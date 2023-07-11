@@ -168,9 +168,9 @@ class DeviceScreen extends StatelessWidget {
                             builder: (context, snapshot) {
                               return Text(
                                   snapshot.hasData ? '${snapshot.data}dBm' : '',
-                                  style: Theme.of(context).textTheme.caption);
+                                  style: Theme.of(context).textTheme.bodySmall);
                             })
-                        : Text('', style: Theme.of(context).textTheme.caption),
+                        : Text('', style: Theme.of(context).textTheme.bodySmall),
                   ],
                 ),
                 title: Text(

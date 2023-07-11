@@ -65,64 +65,64 @@ class Improv extends ChangeNotifier {
       Guid('00467768-6228-2272-4663-277478268005');
   static final List<Guid> scanFilter = List.from([_svcUUID]);
 
-  int _getChecksum(List<int> _list) {
-    int _checksum = 0;
-    for (int i in _list) {
-      _checksum = (_checksum + i) & 0xff;
+  int _getChecksum(List<int> list) {
+    int checksum = 0;
+    for (int i in list) {
+      checksum = (checksum + i) & 0xff;
     }
-    return _checksum;
+    return checksum;
   }
 
-  Uint8List _makePayload(List<int> _val) {
-    _val.add(_getChecksum(_val));
-    return Uint8List.fromList(_val);
+  Uint8List _makePayload(List<int> val) {
+    val.add(_getChecksum(val));
+    return Uint8List.fromList(val);
   }
 
-  BluetoothCharacteristic _getChr(Guid _uuid) {
+  BluetoothCharacteristic _getChr(Guid uuid) {
     for (BluetoothCharacteristic c in _chrs) {
-      if (c.uuid == _uuid) {
+      if (c.uuid == uuid) {
         return c;
       }
     }
     throw ("Improv: missing characteristic!!");
   }
 
-  void _getImprovState(List<int> _val) {
-    int _i = _val[0];
-    _state = improvState.values[_i];
+  void _getImprovState(List<int> val) {
+    int i = val[0];
+    _state = improvState.values[i];
     developer.log(
-      "Improv: current state {$_i} {$_state}",
+      "Improv: current state {$i} {$_state}",
     );
     notifyListeners();
   }
 
-  void _getErrorState(List<int> _val) {
-    _error = Improvrrors.values[_val[0]];
+  void _getErrorState(List<int> val) {
+    _error = Improvrrors.values[val[0]];
     developer.log(
-      "Improv: error state {$_val[0]}",
+      "Improv: error state {$val[0]}",
     );
     notifyListeners();
   }
 
-  void _getRPCResult(List<int> _val) {
+  void _getRPCResult(List<int> val) {
     developer.log(
-      "Improv: RPC result {$_val}",
+      "Improv: RPC result {$val}",
     );
     notifyListeners();
   }
 
-  void _writeRPCCommand(List<int> _cmd) async {
+  void _writeRPCCommand(List<int> cmd) async {
     BluetoothCharacteristic c = _getChr(_RPCCommandUUID);
-    int _bytesLeft = _cmd.length;
-    developer.log("RPC buffer length: {$_bytesLeft}");
-    for (int i = 0; i < _cmd.length; i += 20) {
+    int bytesLeft = cmd.length;
+    developer.log("RPC buffer length: {$bytesLeft}");
+    for (int i = 0; i < cmd.length; i += 20) {
       await Future.delayed(const Duration(milliseconds: 50));
-      int _chunkSize = 20; // always use smallest possible MTU as chunk size
-      if (_bytesLeft < _chunkSize) {
-        _chunkSize = _bytesLeft;
+      int chunkSize = 20; // always use smallest possible MTU as chunk size
+      if (bytesLeft < chunkSize) {
+        chunkSize = bytesLeft;
       }
-      _bytesLeft -= 20;
-      await c.write(_cmd.sublist(i, i + _chunkSize), withoutResponse: true);
+      bytesLeft -= 20;
+      await c.write(cmd.sublist(i, i + chunkSize), withoutResponse: true);
     }
     notifyListeners();
   }
@@ -201,17 +201,17 @@ class Improv extends ChangeNotifier {
   }
 
   void submitCredentials() {
-    List<int> _ssidBytes = utf8.encode(_ssid);
-    List<int> _passwordBytes = utf8.encode(_password);
-    List<int> _command = [1];
-    _command.add(_ssidBytes.length + _passwordBytes.length + 2);
-    _command.add(_ssidBytes.length);
-    _command += _ssidBytes;
-    _command.add(_passwordBytes.length);
-    _command += _passwordBytes;
-    _command.add(_getChecksum(_command));
-    _writeRPCCommand(Uint8List.fromList(_command));
-    developer.log("Start commissioning ... {$_command}");
+    List<int> ssidBytes = utf8.encode(_ssid);
+    List<int> passwordBytes = utf8.encode(_password);
+    List<int> command = [1];
+    command.add(ssidBytes.length + passwordBytes.length + 2);
+    command.add(ssidBytes.length);
+    command += ssidBytes;
+    command.add(passwordBytes.length);
+    command += passwordBytes;
+    command.add(_getChecksum(command));
+    _writeRPCCommand(Uint8List.fromList(command));
+    developer.log("Start commissioning ... {$command}");
   }
 }
 
