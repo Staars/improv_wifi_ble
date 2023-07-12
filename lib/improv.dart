@@ -47,7 +47,7 @@ class Improv extends ChangeNotifier {
   bool supportsIdentify = false;
   improvState _state = improvState._;
   Improvrrors _error = Improvrrors.noError;
-  BluetoothService? _svc;
+  // BluetoothService? _svc;
   List<BluetoothCharacteristic> _chrs = [];
   String _ssid = '';
   String _password = '';
@@ -99,7 +99,7 @@ class Improv extends ChangeNotifier {
   void _getErrorState(List<int> val) {
     _error = Improvrrors.values[val[0]];
     developer.log(
-      "Improv: error state {$val[0]}",
+      "Improv: error state {$_error}",
     );
     notifyListeners();
   }
@@ -136,7 +136,7 @@ class Improv extends ChangeNotifier {
     developer.log("Improv: did discover services");
     for (BluetoothService s in bluetoothServices) {
       if (s.uuid == _svcUUID) {
-        _svc = s;
+        // _svc = s;
         _chrs = s.characteristics;
         developer.log("Improv: got characteristics");
       }
@@ -216,7 +216,7 @@ class Improv extends ChangeNotifier {
 }
 
 class ImprovDialog extends StatefulWidget {
-  ImprovDialog({Key? key, required this.controller}) : super(key: key);
+  const ImprovDialog({Key? key, required this.controller}) : super(key: key);
   final Improv controller;
 
   @override
@@ -244,14 +244,14 @@ class _ImprovDialogState extends State<ImprovDialog> {
       case improvState.Authorized:
         return Column(children: [
           TextField(
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               border: OutlineInputBorder(),
               hintText: 'Enter SSID',
             ),
             onChanged: (value) => controller.setSSID(value),
           ),
           TextField(
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               border: OutlineInputBorder(),
               hintText: 'Enter password',
             ),
@@ -261,7 +261,7 @@ class _ImprovDialogState extends State<ImprovDialog> {
               onPressed: () {
                 controller.submitCredentials();
               },
-              child: Text("submit")),
+              child: const Text("submit")),
         ]);
       default:
         return (Text(controller.statusMessage()));
@@ -284,15 +284,15 @@ class _ImprovDialogState extends State<ImprovDialog> {
                     onPressed: () {
                       controller.identify();
                     },
-                    child: Text("Identify"))
-                : Text(""),
+                    child: const Text("Identify"))
+                : const Text(""),
             ElevatedButton(
                 onPressed: () {
                   controller.device.disconnect();
                   controller.dispose();
                   Navigator.of(context).pop();
                 },
-                child: Text("Cancel")),
+                child: const Text("Cancel")),
           ],
         ),
       ),

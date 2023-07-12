@@ -60,7 +60,7 @@ class ImprovHomePage extends StatefulWidget {
 class _ImprovHomePageState extends State<ImprovHomePage> {
   void _navigateToNextScreen(BuildContext context) {
     Navigator.of(context)
-        .push(MaterialPageRoute(builder: (context) => ScannerScreen()));
+        .push(MaterialPageRoute(builder: (context) => const ScannerScreen()));
   }
 
   @override
@@ -122,10 +122,10 @@ class BluetoothOffScreen extends StatelessWidget {
                   ?.copyWith(color: Colors.white),
             ),
             ElevatedButton(
-              child: const Text('Turn on'),
               onPressed: Platform.isAndroid
                   ? () => FlutterBluePlus.instance.turnOn()
                   : null,
+              child: const Text('Turn on'),
             ),
           ],
         ),

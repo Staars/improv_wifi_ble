@@ -170,7 +170,8 @@ class DeviceScreen extends StatelessWidget {
                                   snapshot.hasData ? '${snapshot.data}dBm' : '',
                                   style: Theme.of(context).textTheme.bodySmall);
                             })
-                        : Text('', style: Theme.of(context).textTheme.bodySmall),
+                        : Text('',
+                            style: Theme.of(context).textTheme.bodySmall),
                   ],
                 ),
                 title: Text(
