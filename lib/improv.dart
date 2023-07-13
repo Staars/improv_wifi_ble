@@ -29,7 +29,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 enum improvState { _, Authorization, Authorized, Provisioning, Provisioned }
 
-enum Improvrrors {
+enum Improverrors {
   noError,
   invalidPacket,
   unknownCommand,
@@ -46,11 +46,12 @@ class Improv extends ChangeNotifier {
   bool connected = true;
   bool supportsIdentify = false;
   improvState _state = improvState._;
-  Improvrrors _error = Improvrrors.noError;
+  Improverrors _error = Improverrors.noError;
   // BluetoothService? _svc;
   List<BluetoothCharacteristic> _chrs = [];
   String _ssid = '';
   String _password = '';
+  int _currentReceiveCommand = -1;
 
   static final Guid _svcUUID = Guid('00467768-6228-2272-4663-277478268000');
   static final Guid _currentStateUUID =
@@ -97,7 +98,7 @@ class Improv extends ChangeNotifier {
   }
 
   void _getErrorState(List<int> val) {
-    _error = Improvrrors.values[val[0]];
+    _error = Improverrors.values[val[0]];
     developer.log(
       "Improv: error state {$_error}",
     );
@@ -105,9 +106,15 @@ class Improv extends ChangeNotifier {
   }
 
   void _getRPCResult(List<int> val) {
-    developer.log(
-      "Improv: RPC result {$val}",
-    );
+    developer.log("Improv: RPC result {$val}");
+    switch (val[0]) {
+      case 3:
+        break;
+      case 4:
+        break;
+      default:
+        developer.log("Improv: unknown RPC result {$val}");
+    }
     notifyListeners();
   }
 
@@ -171,6 +178,8 @@ class Improv extends ChangeNotifier {
         });
       }
     }
+    requestDeviceInfo();
+    requestWifiScan();
   }
 
   String statusMessage() {
@@ -190,6 +199,16 @@ class Improv extends ChangeNotifier {
 
   void identify() {
     _writeRPCCommand(_makePayload([2, 0]));
+  }
+
+  void requestDeviceInfo() {
+    _writeRPCCommand(_makePayload([3, 0]));
+    developer.log("Improv: Request device info ...");
+  }
+
+  void requestWifiScan() {
+    _writeRPCCommand(_makePayload([4, 0]));
+    developer.log("Improv: Request Wifi scan ... ");
   }
 
   void setSSID(String ssid) {
