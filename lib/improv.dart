@@ -6,24 +6,7 @@ import 'dart:developer' as developer;
 import 'dart:typed_data';
 import 'dart:convert';
 
-import 'package:flutter/material.dart'
-    show
-        BuildContext,
-        ChangeNotifier,
-        Column,
-        Container,
-        Dialog,
-        ElevatedButton,
-        InputDecoration,
-        Key,
-        MainAxisAlignment,
-        Navigator,
-        OutlineInputBorder,
-        State,
-        StatefulWidget,
-        Text,
-        TextField,
-        Widget;
+import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -52,6 +35,11 @@ class Improv extends ChangeNotifier {
   String _ssid = '';
   String _password = '';
   int _currentReceiveCommand = -1;
+  int _currentReceiveBytesLeft = 0;
+  Map _deviceInfo = {};
+  List<Map> APList = [];
+  String _wifiScan = "";
+  List<int> _msgRXBuffer = [];
 
   static final Guid _svcUUID = Guid('00467768-6228-2272-4663-277478268000');
   static final Guid _currentStateUUID =
@@ -105,16 +93,89 @@ class Improv extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _parseDeviceInfo() {
+    var s = new String.fromCharCodes(
+        _msgRXBuffer.getRange(2, _msgRXBuffer.length - 1));
+    var i = 2;
+
+    developer.log("Improv: parse device info: " + s);
+    _deviceInfo['firmware'] = new String.fromCharCodes(
+        _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
+    i += _msgRXBuffer[i] + 1;
+    _deviceInfo['version'] = new String.fromCharCodes(
+        _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
+    i += _msgRXBuffer[i] + 1;
+    _deviceInfo['chip'] = new String.fromCharCodes(
+        _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
+    i += _msgRXBuffer[i] + 1;
+    _deviceInfo['name'] = new String.fromCharCodes(
+        _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
+    developer.log(_deviceInfo.toString());
+    notifyListeners();
+  }
+
+  void _parseAPInfo() {
+    if (_msgRXBuffer.length < 4) {
+      developer.log(APList.toString());
+      return;
+    }
+    var s = new String.fromCharCodes(
+        _msgRXBuffer.getRange(2, _msgRXBuffer.length - 1));
+    var i = 2;
+    var AP = {};
+    AP['name'] = new String.fromCharCodes(
+        _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
+    i += _msgRXBuffer[i] + 1;
+    AP['RSSI'] = new String.fromCharCodes(
+        _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
+    i += _msgRXBuffer[i] + 1;
+    AP['enc'] = new String.fromCharCodes(
+        _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
+
+    APList.add(AP);
+    developer.log("Improv: parse AP info: " + s);
+  }
+
   void _getRPCResult(List<int> val) {
-    developer.log("Improv: RPC result {$val}");
-    switch (val[0]) {
+    developer.log("Improv: RPC received {$val}");
+    if (_msgRXBuffer.isEmpty) {
+      _msgRXBuffer = val;
+      if (val.length > 1) {
+        _currentReceiveCommand = val[0];
+        _currentReceiveBytesLeft = val[1];
+        if (val[1] > _msgRXBuffer.length - 3) {
+          return;
+        }
+      } else if (val.length == 1) {
+        _msgRXBuffer = [];
+        return;
+      }
+    } else {
+      _msgRXBuffer.addAll(val);
+      if (_msgRXBuffer[1] > _msgRXBuffer.length - 2) {
+        return;
+      }
+    }
+    if (_msgRXBuffer[1] != _msgRXBuffer.length - 3) {
+      developer.log("Improv: RPC wrong message buffer size, discarding ... ");
+      developer.log(_msgRXBuffer[1].toString());
+      developer.log((_msgRXBuffer.length - 3).toString());
+      _msgRXBuffer = [];
+      return;
+    }
+    switch (_msgRXBuffer[0]) {
+      case 1:
+        break;
       case 3:
+        _parseDeviceInfo();
         break;
       case 4:
+        _parseAPInfo();
         break;
       default:
         developer.log("Improv: unknown RPC result {$val}");
     }
+    _msgRXBuffer = [];
     notifyListeners();
   }
 
@@ -178,8 +239,10 @@ class Improv extends ChangeNotifier {
         });
       }
     }
-    requestDeviceInfo();
-    requestWifiScan();
+    Future.delayed(Duration(milliseconds: 500), () {
+      requestDeviceInfo();
+    });
+    // requestWifiScan();
   }
 
   String statusMessage() {
@@ -219,6 +282,10 @@ class Improv extends ChangeNotifier {
     _password = password;
   }
 
+  void startWifiScan() {
+    requestWifiScan();
+  }
+
   void submitCredentials() {
     List<int> ssidBytes = utf8.encode(_ssid);
     List<int> passwordBytes = utf8.encode(_password);
@@ -256,26 +323,60 @@ class _ImprovDialogState extends State<ImprovDialog> {
     });
   }
 
+  Widget _showDevInfo(BuildContext context) {
+    if (controller._deviceInfo.isEmpty) {
+      return Text("No device info available");
+    } else {
+      return Column(
+        children: [
+          Text("Firmware: " + controller._deviceInfo["firmware"]),
+          Text("Version: " + controller._deviceInfo["version"]),
+          Text("Chip: " + controller._deviceInfo["chip"]),
+          Text("Device name: " + controller._deviceInfo["name"]),
+        ],
+      );
+    }
+  }
+
+  Widget _showShowScan(BuildContext context) {
+    if (controller._wifiScan == "") {
+      return Column(children: [
+        Text("No scan info available"),
+        SizedBox(height: 20),
+        ElevatedButton(
+            onPressed: () {
+              controller.startWifiScan();
+            },
+            child: const Text("Search AP's")),
+      ]);
+    } else {
+      return Column();
+    }
+  }
+
   Widget _currentDialog(BuildContext context) {
     switch (controller._state) {
       case improvState.Authorization:
       //   return Text("");
       case improvState.Authorized:
         return Column(children: [
-          TextField(
+          TextFormField(
             decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: 'Enter SSID',
+              filled: true,
+              hintText: 'Enter SSID...',
+              labelText: 'SSID',
             ),
             onChanged: (value) => controller.setSSID(value),
           ),
-          TextField(
+          TextFormField(
             decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: 'Enter password',
+              filled: true,
+              hintText: 'Enter Password...',
+              labelText: 'Password',
             ),
             onChanged: (value) => controller.setPassword(value),
           ),
+          SizedBox(height: 20),
           ElevatedButton(
               onPressed: () {
                 controller.submitCredentials();
@@ -287,32 +388,76 @@ class _ImprovDialogState extends State<ImprovDialog> {
     }
   }
 
+  Widget _showAPList(BuildContext context) {
+    if (controller.APList.isEmpty) {
+      return const Text("");
+    } else {
+      return ListView.separated(
+        primary: true,
+        shrinkWrap: true,
+        itemCount: controller.APList.length,
+        separatorBuilder: (BuildContext context, int index) {
+          return SizedBox(height: 10);
+        },
+        itemBuilder: (context, index) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: <Widget>[
+              Text(controller.APList[index]['name']),
+              SizedBox(width: 20),
+              Text(controller.APList[index]['RSSI']),
+              SizedBox(width: 20),
+              Text(controller.APList[index]['enc']),
+            ],
+          );
+        },
+      );
+    }
+  }
+
+  _getAPbody() {
+    controller.APList.map((e) => Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [Text(e["name"]), Text(e["RSSI"]), Text(e["enc"])]));
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      child: Container(
-        // height: 300,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            SvgPicture.asset(assetName,
-                semanticsLabel: 'Improv Logo', width: 150, height: 150),
-            _currentDialog(context),
-            controller.supportsIdentify
-                ? ElevatedButton(
-                    onPressed: () {
-                      controller.identify();
-                    },
-                    child: const Text("Identify"))
-                : const Text(""),
-            ElevatedButton(
-                onPressed: () {
-                  controller.device.disconnect();
-                  controller.dispose();
-                  Navigator.of(context).pop();
-                },
-                child: const Text("Cancel")),
-          ],
+    return Form(
+      child: Scrollbar(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: Card(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    ...[
+                      SvgPicture.asset(assetName,
+                          semanticsLabel: 'Improv Logo',
+                          width: 150,
+                          height: 150),
+                      _showDevInfo(context),
+                      _currentDialog(context),
+                      _showShowScan(context),
+                      _showAPList(context),
+                    ].expand(
+                      (widget) => [
+                        widget,
+                        const SizedBox(
+                          height: 24,
+                        )
+                      ],
+                    )
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
