@@ -132,6 +132,8 @@ class Improv extends ChangeNotifier {
     AP['enc'] = new String.fromCharCodes(
         _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
 
+    AP['isExpanded'] = false;
+
     APList.add(AP);
     developer.log("Improv: parse AP info: " + s);
   }
@@ -392,27 +394,67 @@ class _ImprovDialogState extends State<ImprovDialog> {
     if (controller.APList.isEmpty) {
       return const Text("");
     } else {
-      return ListView.separated(
-        primary: true,
-        shrinkWrap: true,
-        itemCount: controller.APList.length,
-        separatorBuilder: (BuildContext context, int index) {
-          return SizedBox(height: 10);
-        },
-        itemBuilder: (context, index) {
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: <Widget>[
-              Text(controller.APList[index]['name']),
-              SizedBox(width: 20),
-              Text(controller.APList[index]['RSSI']),
-              SizedBox(width: 20),
-              Text(controller.APList[index]['enc']),
-            ],
-          );
-        },
-      );
+      return Column(children: [
+        Row(children: [
+          Text("SSID"),
+          Text("RSSI"),
+          Text("Encoded"),
+        ]),
+        ListView.separated(
+          primary: true,
+          shrinkWrap: true,
+          itemCount: controller.APList.length,
+          separatorBuilder: (BuildContext context, int index) {
+            return SizedBox(height: 10);
+          },
+          itemBuilder: (context, index) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: <Widget>[
+                Text(controller.APList[index]['name']),
+                SizedBox(width: 20),
+                Text(controller.APList[index]['RSSI']),
+                SizedBox(width: 20),
+                Text(controller.APList[index]['enc']),
+              ],
+            );
+          },
+        )
+      ]);
     }
+  }
+
+  Widget _buildAPPanel(context) {
+    return SingleChildScrollView(
+      primary: true,
+      child: Container(
+        child: ExpansionPanelList(
+          expansionCallback: (int index, bool isExpanded) {
+            setState(() {
+              controller.APList[index]["isExpanded"] =
+                  !controller.APList[index]["isExpanded"];
+            });
+          },
+          children: controller.APList.map<ExpansionPanel>((Map item) {
+            return ExpansionPanel(
+              headerBuilder: (BuildContext context, bool isExpanded) {
+                return ListTile(
+                  title: Text(item["name"]),
+                );
+              },
+              body: ListTile(
+                  title: Text("RSSI: " + item["RSSI"]),
+                  subtitle: Text("Encoded: " + item["enc"]),
+                  trailing: const Icon(Icons.arrow_upward),
+                  onTap: () {
+                    setState(() {});
+                  }),
+              isExpanded: item["isExpanded"],
+            );
+          }).toList(),
+        ),
+      ),
+    );
   }
 
   _getAPbody() {
@@ -444,7 +486,7 @@ class _ImprovDialogState extends State<ImprovDialog> {
                       _showDevInfo(context),
                       _currentDialog(context),
                       _showShowScan(context),
-                      _showAPList(context),
+                      _buildAPPanel(context),
                     ].expand(
                       (widget) => [
                         widget,
