@@ -19,6 +19,15 @@ class ScannerScreen extends StatelessWidget {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: const Text('Scan for Improv Devices'),
         actions: [
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: Duration(seconds: 4),
+            builder: (context, value, _) =>
+                CircularProgressIndicator(value: value),
+          ),
+          SizedBox(
+            width: 20,
+          ),
           ElevatedButton(
             onPressed: () => FlutterBluePlus.instance.stopScan(),
             child: const Text('Stop Scan'),
