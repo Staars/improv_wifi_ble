@@ -6,13 +6,16 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'widgets.dart';
 import 'improv.dart';
 
+const _scanDuration = 4;
+
 class ScannerScreen extends StatelessWidget {
   const ScannerScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     FlutterBluePlus.instance.startScan(
-        withServices: Improv.scanFilter, timeout: const Duration(seconds: 4));
+        withServices: Improv.scanFilter,
+        timeout: const Duration(seconds: _scanDuration));
 
     return Scaffold(
       appBar: AppBar(
@@ -21,7 +24,7 @@ class ScannerScreen extends StatelessWidget {
         actions: [
           TweenAnimationBuilder<double>(
             tween: Tween(begin: 0, end: 1),
-            duration: Duration(seconds: 4),
+            duration: Duration(seconds: _scanDuration),
             builder: (context, value, _) =>
                 CircularProgressIndicator(value: value),
           ),

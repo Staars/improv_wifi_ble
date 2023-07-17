@@ -76,8 +76,6 @@ class _ImprovHomePageState extends State<ImprovHomePage> {
           children: <Widget>[
             ElevatedButton(
               style: TextButton.styleFrom(
-                // backgroundColor: Color.fromARGB(255, 51, 19, 255),
-                // foregroundColor: Color.fromARGB(255, 240, 238, 255),
                 padding: const EdgeInsets.all(16.0),
                 textStyle: const TextStyle(fontSize: 20),
                 shape: RoundedRectangleBorder(

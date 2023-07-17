@@ -132,9 +132,13 @@ class Improv extends ChangeNotifier {
     AP['enc'] = new String.fromCharCodes(
         _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
 
-    AP['isExpanded'] = false;
+    // AP['isExpanded'] = false;
+
+    APList.removeWhere(
+        (element) => element["name"] == AP["name"]); // remove duplicates
 
     APList.add(AP);
+
     developer.log("Improv: parse AP info: " + s);
   }
 
@@ -278,6 +282,8 @@ class Improv extends ChangeNotifier {
 
   void setSSID(String ssid) {
     _ssid = ssid;
+    notifyListeners();
+    developer.log("SSID is now: " + _ssid);
   }
 
   void setPassword(String password) {
@@ -285,6 +291,7 @@ class Improv extends ChangeNotifier {
   }
 
   void startWifiScan() {
+    APList = [];
     requestWifiScan();
   }
 
@@ -316,6 +323,7 @@ class _ImprovDialogState extends State<ImprovDialog> {
   _ImprovDialogState({Key? key, required this.controller});
   final String assetName = 'lib/assets/improv-logo.svg';
   final Improv controller;
+  final TextEditingController ssidController = TextEditingController();
 
   @override
   void initState() {
@@ -343,16 +351,72 @@ class _ImprovDialogState extends State<ImprovDialog> {
   Widget _showShowScan(BuildContext context) {
     if (controller._wifiScan == "") {
       return Column(children: [
-        Text("No scan info available"),
+        Tooltip(
+          message: "Ask the Improv device to scan for WiFi access points",
+          child: ElevatedButton(
+              onPressed: () {
+                controller.startWifiScan();
+              },
+              child: const Text("Request WiFi scan")),
+        ),
         SizedBox(height: 20),
-        ElevatedButton(
-            onPressed: () {
-              controller.startWifiScan();
-            },
-            child: const Text("Search AP's")),
       ]);
     } else {
-      return Column();
+      return Text("");
+    }
+  }
+
+  Widget _SSIDSelector(BuildContext context) {
+    if (controller.APList.isEmpty) {
+      return TextFormField(
+        decoration: const InputDecoration(
+          filled: true,
+          hintText: 'Enter SSID...',
+          labelText: "SSID",
+        ),
+        onChanged: (value) => controller.setSSID(value),
+      );
+    } else {
+      final List<DropdownMenuItem<String>> APentries =
+          <DropdownMenuItem<String>>[];
+      for (final Map AP in controller.APList) {
+        APentries.add(DropdownMenuItem<String>(
+            value: AP["name"],
+            child: Stack(
+              children: [
+                Align(
+                  alignment: Alignment(-1, 0),
+                  child: Text(AP["name"]),
+                ),
+                Align(
+                  alignment: Alignment(0.1, 0),
+                  child: Text("RSSI: " + AP["RSSI"]),
+                ),
+                Align(
+                  alignment: Alignment(0.9, 0),
+                  child: Text(" WPA/PSK: " + AP["enc"]),
+                ),
+              ],
+            )));
+        developer.log(AP["name"]);
+      }
+      developer.log(APentries.toString());
+      return DropdownButtonFormField<String>(
+        isExpanded: true,
+        items: APentries,
+        decoration: const InputDecoration(
+          filled: true,
+          hintText: 'Enter SSID...',
+          labelText: "SSID",
+        ),
+        onChanged: (String? ssid) {
+          setState(() {
+            if (ssid != null) {
+              controller.setSSID(ssid);
+            }
+          });
+        },
+      );
     }
   }
 
@@ -362,14 +426,7 @@ class _ImprovDialogState extends State<ImprovDialog> {
       //   return Text("");
       case improvState.Authorized:
         return Column(children: [
-          TextFormField(
-            decoration: const InputDecoration(
-              filled: true,
-              hintText: 'Enter SSID...',
-              labelText: 'SSID',
-            ),
-            onChanged: (value) => controller.setSSID(value),
-          ),
+          _SSIDSelector(context),
           TextFormField(
             decoration: const InputDecoration(
               filled: true,
@@ -379,89 +436,90 @@ class _ImprovDialogState extends State<ImprovDialog> {
             onChanged: (value) => controller.setPassword(value),
           ),
           SizedBox(height: 20),
-          ElevatedButton(
-              onPressed: () {
-                controller.submitCredentials();
-              },
-              child: const Text("submit")),
+          Tooltip(
+            message:
+                "Pass WiFi credentials to the Improv device, may trigger a reboot on success",
+            child: ElevatedButton(
+                onPressed: () {
+                  controller.submitCredentials();
+                },
+                child: const Text("Submit credentials")),
+          ),
         ]);
       default:
         return (Text(controller.statusMessage()));
     }
   }
 
-  Widget _showAPList(BuildContext context) {
-    if (controller.APList.isEmpty) {
-      return const Text("");
-    } else {
-      return Column(children: [
-        Row(children: [
-          Text("SSID"),
-          Text("RSSI"),
-          Text("Encoded"),
-        ]),
-        ListView.separated(
-          primary: true,
-          shrinkWrap: true,
-          itemCount: controller.APList.length,
-          separatorBuilder: (BuildContext context, int index) {
-            return SizedBox(height: 10);
-          },
-          itemBuilder: (context, index) {
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: <Widget>[
-                Text(controller.APList[index]['name']),
-                SizedBox(width: 20),
-                Text(controller.APList[index]['RSSI']),
-                SizedBox(width: 20),
-                Text(controller.APList[index]['enc']),
-              ],
-            );
-          },
-        )
-      ]);
-    }
-  }
+  // Widget _showAPList(BuildContext context) {
+  //   if (controller.APList.isEmpty) {
+  //     return const Text("No list of access points received");
+  //   } else {
+  //     return Column(children: [
+  //       Row(children: [
+  //         Text("SSID"),
+  //         Text("RSSI"),
+  //         Text("Encoded"),
+  //       ]),
+  //       ListView.separated(
+  //         primary: true,
+  //         shrinkWrap: true,
+  //         itemCount: controller.APList.length,
+  //         separatorBuilder: (BuildContext context, int index) {
+  //           return SizedBox(height: 10);
+  //         },
+  //         itemBuilder: (context, index) {
+  //           return Row(
+  //             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+  //             children: <Widget>[
+  //               Text(controller.APList[index]['name']),
+  //               SizedBox(width: 20),
+  //               Text(controller.APList[index]['RSSI']),
+  //               SizedBox(width: 20),
+  //               Text(controller.APList[index]['enc']),
+  //             ],
+  //           );
+  //         },
+  //       )
+  //     ]);
+  //   }
+  // }
 
-  Widget _buildAPPanel(context) {
-    return SingleChildScrollView(
-      primary: true,
-      child: Container(
-        child: ExpansionPanelList(
-          expansionCallback: (int index, bool isExpanded) {
-            setState(() {
-              controller.APList[index]["isExpanded"] =
-                  !controller.APList[index]["isExpanded"];
-            });
-          },
-          children: controller.APList.map<ExpansionPanel>((Map item) {
-            return ExpansionPanel(
-              headerBuilder: (BuildContext context, bool isExpanded) {
-                return ListTile(
-                  title: Text(item["name"]),
-                );
-              },
-              body: ListTile(
-                  title: Text("RSSI: " + item["RSSI"]),
-                  subtitle: Text("Encoded: " + item["enc"]),
-                  trailing: const Icon(Icons.arrow_upward),
-                  onTap: () {
-                    setState(() {});
-                  }),
-              isExpanded: item["isExpanded"],
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  _getAPbody() {
-    controller.APList.map((e) => Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [Text(e["name"]), Text(e["RSSI"]), Text(e["enc"])]));
-  }
+  // Widget _buildAPPanel(context) {
+  //   return SingleChildScrollView(
+  //     primary: true,
+  //     child: Container(
+  //       child: ExpansionPanelList(
+  //         expansionCallback: (int index, bool isExpanded) {
+  //           setState(() {
+  //             controller.APList[index]["isExpanded"] =
+  //                 !controller.APList[index]["isExpanded"];
+  //           });
+  //         },
+  //         children: controller.APList.map<ExpansionPanel>((Map item) {
+  //           return ExpansionPanel(
+  //             headerBuilder: (BuildContext context, bool isExpanded) {
+  //               return ListTile(
+  //                 title: Text(item["name"]),
+  //               );
+  //             },
+  //             body: ListTile(
+  //                 title: Text("RSSI: " + item["RSSI"]),
+  //                 subtitle: Text("Encoded: " + item["enc"]),
+  //                 trailing: const Icon(Icons.arrow_upward),
+  //                 onTap: () {
+  //                   setState(() {
+  //                     controller.setSSID(item["name"]);
+  //                     developer.log("Use SSID: " + item["name"]);
+  //                   });
+  //                 }),
+  //             isExpanded: item["isExpanded"],
+  //           );
+  //         }).toList(),
+  //       ),
+  //     ),
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -486,7 +544,7 @@ class _ImprovDialogState extends State<ImprovDialog> {
                       _showDevInfo(context),
                       _currentDialog(context),
                       _showShowScan(context),
-                      _buildAPPanel(context),
+                      // _buildAPPanel(context),
                     ].expand(
                       (widget) => [
                         widget,
