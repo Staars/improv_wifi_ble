@@ -306,7 +306,7 @@ class Improv extends ChangeNotifier {
   }
 
   void startWifiScan() {
-    APList = [];
+    // APList = [];
     requestWifiScan();
   }
 
@@ -505,26 +505,30 @@ class _ImprovDialogState extends State<ImprovDialog> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: const Text('Commissioning'),
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          ...[
-            SvgPicture.asset(assetName,
-                semanticsLabel: 'Improv Logo', width: 150, height: 150),
-            _showDevInfo(context),
-            _currentDialog(context),
-            _showShowScan(context),
-            // _buildAPPanel(context),
-          ].expand(
-            (widget) => [
-              widget,
-              const SizedBox(
-                height: 24,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: 240, maxWidth: 600),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              ...[
+                SvgPicture.asset(assetName,
+                    semanticsLabel: 'Improv Logo', width: 150, height: 150),
+                _showDevInfo(context),
+                _currentDialog(context),
+                _showShowScan(context),
+              ].expand(
+                (widget) => [
+                  widget,
+                  const SizedBox(
+                    height: 24,
+                  )
+                ],
               )
             ],
-          )
-        ],
+          ),
+        ),
       ),
     );
   }
