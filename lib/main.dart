@@ -30,6 +30,12 @@ class ImprovApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Improv Wifi',
+      initialRoute: '/home',
+      routes: {
+        '/home': (context) => ImprovHomePage(
+              title: 'Improv Wi-Fi via BLE',
+            ),
+      },
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
@@ -60,7 +66,7 @@ class ImprovHomePage extends StatefulWidget {
 class _ImprovHomePageState extends State<ImprovHomePage> {
   void _navigateToNextScreen(BuildContext context) {
     Navigator.of(context)
-        .push(MaterialPageRoute(builder: (context) => const ScannerScreen()));
+        .push(MaterialPageRoute(builder: (context) => ScannerScreen()));
   }
 
   @override

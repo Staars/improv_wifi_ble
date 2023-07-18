@@ -5,17 +5,32 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 import 'widgets.dart';
 import 'improv.dart';
+import 'dart:developer' as developer;
 
-const _scanDuration = 4;
+class ScannerScreen extends StatefulWidget {
+  ScannerScreen({Key? key}) : super(key: key);
 
-class ScannerScreen extends StatelessWidget {
-  const ScannerScreen({Key? key}) : super(key: key);
+  @override
+  _ScannerScreenState createState() => _ScannerScreenState();
+}
+
+class _ScannerScreenState extends State<ScannerScreen> {
+  int _scanDuration = 0;
+  double _beginTweenValue = 0;
+
+  @override
+  void initState() {
+    developer.log("Init scanner widget");
+    _scanDuration = 4;
+    _beginTweenValue = 0.0;
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
     FlutterBluePlus.instance.startScan(
         withServices: Improv.scanFilter,
-        timeout: const Duration(seconds: _scanDuration));
+        timeout: Duration(seconds: _scanDuration));
 
     return Scaffold(
       appBar: AppBar(
@@ -23,7 +38,7 @@ class ScannerScreen extends StatelessWidget {
         title: const Text('Scan for Improv Devices'),
         actions: [
           TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: 1),
+            tween: Tween(begin: _beginTweenValue, end: 1),
             duration: Duration(seconds: _scanDuration),
             builder: (context, value, _) =>
                 CircularProgressIndicator(value: value),
@@ -53,7 +68,6 @@ class ScannerScreen extends StatelessWidget {
                           result: r,
                           onTap: () => Navigator.of(context)
                               .push(MaterialPageRoute(builder: (context) {
-                            // await r.device.connect();
                             Improv impController = Improv(device: r.device);
                             impController.setup();
                             return ImprovDialog(controller: impController);

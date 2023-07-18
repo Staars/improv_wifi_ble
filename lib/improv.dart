@@ -24,6 +24,21 @@ enum Improverrors {
 class Improv extends ChangeNotifier {
   Improv({Key? key, required this.device});
 
+  bool _disposed = false;
+  @override
+  void dispose() {
+    device.disconnect();
+    _disposed = true;
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) {
+      super.notifyListeners();
+    }
+  }
+
   final FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
   final BluetoothDevice device;
   bool connected = true;
@@ -328,9 +343,18 @@ class _ImprovDialogState extends State<ImprovDialog> {
   @override
   void initState() {
     super.initState();
-    widget.controller.addListener(() {
+    controller.addListener(() {
       setState(() {});
     });
+  }
+
+  @override
+  dispose() {
+    controller.removeListener(() {
+      setState;
+    });
+    controller.dispose();
+    super.dispose();
   }
 
   Widget _showDevInfo(BuildContext context) {
@@ -366,6 +390,27 @@ class _ImprovDialogState extends State<ImprovDialog> {
     }
   }
 
+  Widget _getWifiIcon(String RSSI) {
+    final strength = int.parse(RSSI);
+    if (strength < -90) {
+      return Icon(Icons.network_wifi_1_bar);
+    } else if (strength < -80) {
+      return Icon(Icons.network_wifi_2_bar);
+    } else if (strength < -70) {
+      return Icon(Icons.network_wifi_3_bar);
+    } else {
+      return Icon(Icons.signal_wifi_4_bar);
+    }
+  }
+
+  Widget _getEncIcon(String enc) {
+    if (enc == "YES") {
+      return Icon(Icons.wifi_password);
+    } else {
+      return Icon(Icons.no_encryption);
+    }
+  }
+
   Widget _SSIDSelector(BuildContext context) {
     if (controller.APList.isEmpty) {
       return TextFormField(
@@ -389,13 +434,11 @@ class _ImprovDialogState extends State<ImprovDialog> {
                   child: Text(AP["name"]),
                 ),
                 Align(
-                  alignment: Alignment(0.1, 0),
-                  child: Text("RSSI: " + AP["RSSI"]),
-                ),
+                    alignment: Alignment(0.6, 0),
+                    child: _getWifiIcon(AP["RSSI"])),
                 Align(
-                  alignment: Alignment(0.9, 0),
-                  child: Text(" WPA/PSK: " + AP["enc"]),
-                ),
+                    alignment: Alignment(0.8, 0),
+                    child: _getEncIcon(AP["enc"])),
               ],
             )));
         developer.log(AP["name"]);
@@ -451,114 +494,37 @@ class _ImprovDialogState extends State<ImprovDialog> {
     }
   }
 
-  // Widget _showAPList(BuildContext context) {
-  //   if (controller.APList.isEmpty) {
-  //     return const Text("No list of access points received");
-  //   } else {
-  //     return Column(children: [
-  //       Row(children: [
-  //         Text("SSID"),
-  //         Text("RSSI"),
-  //         Text("Encoded"),
-  //       ]),
-  //       ListView.separated(
-  //         primary: true,
-  //         shrinkWrap: true,
-  //         itemCount: controller.APList.length,
-  //         separatorBuilder: (BuildContext context, int index) {
-  //           return SizedBox(height: 10);
-  //         },
-  //         itemBuilder: (context, index) {
-  //           return Row(
-  //             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-  //             children: <Widget>[
-  //               Text(controller.APList[index]['name']),
-  //               SizedBox(width: 20),
-  //               Text(controller.APList[index]['RSSI']),
-  //               SizedBox(width: 20),
-  //               Text(controller.APList[index]['enc']),
-  //             ],
-  //           );
-  //         },
-  //       )
-  //     ]);
-  //   }
-  // }
-
-  // Widget _buildAPPanel(context) {
-  //   return SingleChildScrollView(
-  //     primary: true,
-  //     child: Container(
-  //       child: ExpansionPanelList(
-  //         expansionCallback: (int index, bool isExpanded) {
-  //           setState(() {
-  //             controller.APList[index]["isExpanded"] =
-  //                 !controller.APList[index]["isExpanded"];
-  //           });
-  //         },
-  //         children: controller.APList.map<ExpansionPanel>((Map item) {
-  //           return ExpansionPanel(
-  //             headerBuilder: (BuildContext context, bool isExpanded) {
-  //               return ListTile(
-  //                 title: Text(item["name"]),
-  //               );
-  //             },
-  //             body: ListTile(
-  //                 title: Text("RSSI: " + item["RSSI"]),
-  //                 subtitle: Text("Encoded: " + item["enc"]),
-  //                 trailing: const Icon(Icons.arrow_upward),
-  //                 onTap: () {
-  //                   setState(() {
-  //                     controller.setSSID(item["name"]);
-  //                     developer.log("Use SSID: " + item["name"]);
-  //                   });
-  //                 }),
-  //             isExpanded: item["isExpanded"],
-  //           );
-  //         }).toList(),
-  //       ),
-  //     ),
-  //   );
-  // }
-
   @override
   Widget build(BuildContext context) {
-    return Form(
-      child: Scrollbar(
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: Card(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    ...[
-                      SvgPicture.asset(assetName,
-                          semanticsLabel: 'Improv Logo',
-                          width: 150,
-                          height: 150),
-                      _showDevInfo(context),
-                      _currentDialog(context),
-                      _showShowScan(context),
-                      // _buildAPPanel(context),
-                    ].expand(
-                      (widget) => [
-                        widget,
-                        const SizedBox(
-                          height: 24,
-                        )
-                      ],
-                    )
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                context, '/home', (route) => false)),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: const Text('Commissioning'),
+      ),
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          ...[
+            SvgPicture.asset(assetName,
+                semanticsLabel: 'Improv Logo', width: 150, height: 150),
+            _showDevInfo(context),
+            _currentDialog(context),
+            _showShowScan(context),
+            // _buildAPPanel(context),
+          ].expand(
+            (widget) => [
+              widget,
+              const SizedBox(
+                height: 24,
+              )
+            ],
+          )
+        ],
       ),
     );
   }
