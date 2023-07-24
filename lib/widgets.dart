@@ -13,7 +13,7 @@ class ScanResultTile extends StatelessWidget {
   final VoidCallback? onTap;
 
   Widget _buildTitle(BuildContext context) {
-    if (result.device.name.isNotEmpty) {
+    if (result.device.localName.isNotEmpty) {
       return Column(
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,7 +93,8 @@ class ScanResultTile extends StatelessWidget {
       leading: Text(result.rssi.toString()),
       trailing: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          foregroundColor: Colors.white, backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          backgroundColor: Colors.black,
         ),
         onPressed: (result.advertisementData.connectable) ? onTap : null,
         child: const Text('CONNECT'),
@@ -244,10 +245,8 @@ class DescriptorTile extends StatelessWidget {
         children: <Widget>[
           const Text('Descriptor'),
           Text('0x${descriptor.uuid.toString().toUpperCase().substring(4, 8)}',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyLarge
-                  ?.copyWith(color: Theme.of(context).textTheme.bodySmall?.color))
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Theme.of(context).textTheme.bodySmall?.color))
         ],
       ),
       subtitle: StreamBuilder<List<int>>(
@@ -281,7 +280,7 @@ class DescriptorTile extends StatelessWidget {
 class AdapterStateTile extends StatelessWidget {
   const AdapterStateTile({Key? key, required this.state}) : super(key: key);
 
-  final BluetoothState state;
+  final BluetoothAdapterState state;
 
   @override
   Widget build(BuildContext context) {

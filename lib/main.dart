@@ -40,12 +40,12 @@ class ImprovApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: StreamBuilder<BluetoothState>(
-          stream: FlutterBluePlus.instance.state,
-          initialData: BluetoothState.unknown,
+      home: StreamBuilder<BluetoothAdapterState>(
+          stream: FlutterBluePlus.adapterState,
+          initialData: BluetoothAdapterState.unknown,
           builder: (c, snapshot) {
             final state = snapshot.data;
-            if (state == BluetoothState.on) {
+            if (state == BluetoothAdapterState.on) {
               return const ImprovHomePage(title: 'Improv Wi-Fi via BLE');
             }
             return BluetoothOffScreen(state: state);
@@ -103,7 +103,7 @@ class _ImprovHomePageState extends State<ImprovHomePage> {
 class BluetoothOffScreen extends StatelessWidget {
   const BluetoothOffScreen({Key? key, this.state}) : super(key: key);
 
-  final BluetoothState? state;
+  final BluetoothAdapterState? state;
 
   @override
   Widget build(BuildContext context) {
@@ -126,9 +126,8 @@ class BluetoothOffScreen extends StatelessWidget {
                   ?.copyWith(color: Colors.white),
             ),
             ElevatedButton(
-              onPressed: Platform.isAndroid
-                  ? () => FlutterBluePlus.instance.turnOn()
-                  : null,
+              onPressed:
+                  Platform.isAndroid ? () => FlutterBluePlus.turnOn() : null,
               child: const Text('Turn on'),
             ),
           ],

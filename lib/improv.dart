@@ -39,7 +39,7 @@ class Improv extends ChangeNotifier {
     }
   }
 
-  final FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
+  // final FlutterBluePlus flutterBlue = FlutterBluePlus;
   final BluetoothDevice device;
   bool connected = true;
   bool supportsIdentify = false;
@@ -92,6 +92,9 @@ class Improv extends ChangeNotifier {
   }
 
   void _getImprovState(List<int> val) {
+    if (val.isEmpty) {
+      return;
+    }
     int i = val[0];
     _state = improvState.values[i];
     developer.log(
@@ -101,6 +104,9 @@ class Improv extends ChangeNotifier {
   }
 
   void _getErrorState(List<int> val) {
+    if (val.isEmpty) {
+      return;
+    }
     _error = Improverrors.values[val[0]];
     developer.log(
       "Improv: error state {$_error}",
@@ -217,14 +223,14 @@ class Improv extends ChangeNotifier {
   }
 
   void setup() async {
-    flutterBlue.stopScan();
+    FlutterBluePlus.stopScan();
     developer.log("Improv: will connect to {$device.name}");
     await device.connect();
     developer.log("Improv: did connect to {$device.name}");
     List<BluetoothService> bluetoothServices = await device.discoverServices();
     developer.log("Improv: did discover services");
     for (BluetoothService s in bluetoothServices) {
-      if (s.uuid == _svcUUID) {
+      if (s.serviceUuid == _svcUUID) {
         // _svc = s;
         _chrs = s.characteristics;
         developer.log("Improv: got characteristics");
@@ -232,32 +238,36 @@ class Improv extends ChangeNotifier {
     }
     developer.log("Improv: found service uuid");
     for (BluetoothCharacteristic c in _chrs) {
-      if (c.uuid == _capabilitiesUUID) {
+      if (c.characteristicUuid == _capabilitiesUUID) {
         developer.log("Improv: will read identify property");
         List<int> value = await c.read();
-        supportsIdentify = value[0] == 1;
-        developer.log("Improv: supports identify {$supportsIdentify}");
-      } else if (c.uuid == _currentStateUUID) {
+        if (value.isNotEmpty) {
+          supportsIdentify = value[0] == 1;
+          developer.log("Improv: supports identify {$supportsIdentify}");
+        } else {
+          developer.log("Improv: supports identify did not send data");
+        }
+      } else if (c.characteristicUuid == _currentStateUUID) {
         List<int> value = await c.read();
         _getImprovState(value);
-        await c.setNotifyValue(true);
         notifyListeners();
         developer.log("Improv: subscribe to characteristic: current state");
-        c.value.listen((value) {
+        c.onValueReceived.listen((value) {
           _getImprovState(value);
         });
-      } else if (c.uuid == _errorStateUUID) {
         await c.setNotifyValue(true);
+      } else if (c.characteristicUuid == _errorStateUUID) {
         developer.log("Improv: subscribe to characteristic: error state");
-        c.value.listen((value) {
+        c.onValueReceived.listen((value) {
           _getErrorState(value);
         });
-      } else if (c.uuid == _RPCResultUUID) {
-        developer.log("Improv: subscribe to characteristic: RPC result");
         await c.setNotifyValue(true);
-        c.value.listen((value) {
+      } else if (c.characteristicUuid == _RPCResultUUID) {
+        developer.log("Improv: subscribe to characteristic: RPC result");
+        c.onValueReceived.listen((value) {
           _getRPCResult(value);
         });
+        await c.setNotifyValue(true);
       }
     }
     Future.delayed(Duration(milliseconds: 500), () {

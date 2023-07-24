@@ -28,7 +28,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    FlutterBluePlus.instance.startScan(
+    FlutterBluePlus.startScan(
         withServices: Improv.scanFilter,
         timeout: Duration(seconds: _scanDuration));
 
@@ -47,19 +47,19 @@ class _ScannerScreenState extends State<ScannerScreen> {
             width: 20,
           ),
           ElevatedButton(
-            onPressed: () => FlutterBluePlus.instance.stopScan(),
+            onPressed: () => FlutterBluePlus.stopScan(),
             child: const Text('Stop Scan'),
           ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => FlutterBluePlus.instance
-            .startScan(timeout: const Duration(seconds: 4)),
+        onRefresh: () =>
+            FlutterBluePlus.startScan(timeout: const Duration(seconds: 4)),
         child: SingleChildScrollView(
           child: Column(
             children: <Widget>[
               StreamBuilder<List<ScanResult>>(
-                stream: FlutterBluePlus.instance.scanResults,
+                stream: FlutterBluePlus.scanResults,
                 initialData: const [],
                 builder: (c, snapshot) => Column(
                   children: snapshot.data!
@@ -142,18 +142,18 @@ class DeviceScreen extends StatelessWidget {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(device.name),
         actions: <Widget>[
-          StreamBuilder<BluetoothDeviceState>(
-            stream: device.state,
-            initialData: BluetoothDeviceState.connecting,
+          StreamBuilder<BluetoothConnectionState>(
+            stream: device.connectionState,
+            initialData: BluetoothConnectionState.connecting,
             builder: (c, snapshot) {
               VoidCallback? onPressed;
               String text;
               switch (snapshot.data) {
-                case BluetoothDeviceState.connected:
+                case BluetoothConnectionState.connected:
                   onPressed = () => device.disconnect();
                   text = 'DISCONNECT';
                   break;
-                case BluetoothDeviceState.disconnected:
+                case BluetoothConnectionState.disconnected:
                   onPressed = () => device.connect();
                   text = 'Connect to Wifi';
                   break;
@@ -178,17 +178,17 @@ class DeviceScreen extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: <Widget>[
-            StreamBuilder<BluetoothDeviceState>(
-              stream: device.state,
-              initialData: BluetoothDeviceState.connecting,
+            StreamBuilder<BluetoothConnectionState>(
+              stream: device.connectionState,
+              initialData: BluetoothConnectionState.connecting,
               builder: (c, snapshot) => ListTile(
                 leading: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    snapshot.data == BluetoothDeviceState.connected
+                    snapshot.data == BluetoothConnectionState.connected
                         ? const Icon(Icons.bluetooth_connected)
                         : const Icon(Icons.bluetooth_disabled),
-                    snapshot.data == BluetoothDeviceState.connected
+                    snapshot.data == BluetoothConnectionState.connected
                         ? StreamBuilder<int>(
                             stream: rssiStream(),
                             builder: (context, snapshot) {
@@ -257,8 +257,8 @@ class DeviceScreen extends StatelessWidget {
 
   Stream<int> rssiStream() async* {
     var isConnected = true;
-    final subscription = device.state.listen((state) {
-      isConnected = state == BluetoothDeviceState.connected;
+    final subscription = device.connectionState.listen((state) {
+      isConnected = state == BluetoothConnectionState.connected;
     });
     while (isConnected) {
       yield await device.readRssi();
