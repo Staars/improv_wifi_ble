@@ -43,7 +43,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
             builder: (context, value, _) =>
                 CircularProgressIndicator(value: value),
           ),
-          SizedBox(
+          const SizedBox(
             width: 20,
           ),
           ElevatedButton(

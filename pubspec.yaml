@@ -38,7 +38,7 @@ dependencies:
   
   permission_handler: ^10.4.1
 
-  flutter_blue_plus: ^1.10.3
+  flutter_blue_plus: ^1.12.8
       # git: 
       #   url: https://github.com/boskokg/flutter_blue_plus.git
       #   ref: master # currently fine for iOS, macOS and Android

@@ -51,9 +51,9 @@ class Improv extends ChangeNotifier {
   String _password = '';
   int _currentReceiveCommand = -1;
   int _currentReceiveBytesLeft = 0;
-  Map _deviceInfo = {};
+  final Map _deviceInfo = {};
   List<Map> APList = [];
-  String _wifiScan = "";
+  final String _wifiScan = "";
   List<int> _msgRXBuffer = [];
 
   static final Guid _svcUUID = Guid('00467768-6228-2272-4663-277478268000');
@@ -115,21 +115,21 @@ class Improv extends ChangeNotifier {
   }
 
   void _parseDeviceInfo() {
-    var s = new String.fromCharCodes(
+    var s = String.fromCharCodes(
         _msgRXBuffer.getRange(2, _msgRXBuffer.length - 1));
     var i = 2;
 
     developer.log("Improv: parse device info: " + s);
-    _deviceInfo['firmware'] = new String.fromCharCodes(
+    _deviceInfo['firmware'] = String.fromCharCodes(
         _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
     i += _msgRXBuffer[i] + 1;
-    _deviceInfo['version'] = new String.fromCharCodes(
+    _deviceInfo['version'] = String.fromCharCodes(
         _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
     i += _msgRXBuffer[i] + 1;
-    _deviceInfo['chip'] = new String.fromCharCodes(
+    _deviceInfo['chip'] = String.fromCharCodes(
         _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
     i += _msgRXBuffer[i] + 1;
-    _deviceInfo['name'] = new String.fromCharCodes(
+    _deviceInfo['name'] = String.fromCharCodes(
         _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
     developer.log(_deviceInfo.toString());
     notifyListeners();
@@ -140,17 +140,17 @@ class Improv extends ChangeNotifier {
       developer.log(APList.toString());
       return;
     }
-    var s = new String.fromCharCodes(
+    var s = String.fromCharCodes(
         _msgRXBuffer.getRange(2, _msgRXBuffer.length - 1));
     var i = 2;
     var AP = {};
-    AP['name'] = new String.fromCharCodes(
+    AP['name'] = String.fromCharCodes(
         _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
     i += _msgRXBuffer[i] + 1;
-    AP['RSSI'] = new String.fromCharCodes(
+    AP['RSSI'] = String.fromCharCodes(
         _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
     i += _msgRXBuffer[i] + 1;
-    AP['enc'] = new String.fromCharCodes(
+    AP['enc'] = String.fromCharCodes(
         _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
 
     // AP['isExpanded'] = false;
@@ -270,7 +270,7 @@ class Improv extends ChangeNotifier {
         await c.setNotifyValue(true);
       }
     }
-    Future.delayed(Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 500), () {
       requestDeviceInfo();
     });
     // requestWifiScan();
@@ -369,7 +369,7 @@ class _ImprovDialogState extends State<ImprovDialog> {
 
   Widget _showDevInfo(BuildContext context) {
     if (controller._deviceInfo.isEmpty) {
-      return Text("No device info available");
+      return const Text("No device info available");
     } else {
       return Column(
         children: [
@@ -393,31 +393,31 @@ class _ImprovDialogState extends State<ImprovDialog> {
               },
               child: const Text("Request WiFi scan")),
         ),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
       ]);
     } else {
-      return Text("");
+      return const Text("");
     }
   }
 
   Widget _getWifiIcon(String RSSI) {
     final strength = int.parse(RSSI);
     if (strength < -90) {
-      return Icon(Icons.network_wifi_1_bar);
+      return const Icon(Icons.network_wifi_1_bar);
     } else if (strength < -80) {
-      return Icon(Icons.network_wifi_2_bar);
+      return const Icon(Icons.network_wifi_2_bar);
     } else if (strength < -70) {
-      return Icon(Icons.network_wifi_3_bar);
+      return const Icon(Icons.network_wifi_3_bar);
     } else {
-      return Icon(Icons.signal_wifi_4_bar);
+      return const Icon(Icons.signal_wifi_4_bar);
     }
   }
 
   Widget _getEncIcon(String enc) {
     if (enc == "YES") {
-      return Icon(Icons.wifi_password);
+      return const Icon(Icons.wifi_password);
     } else {
-      return Icon(Icons.no_encryption);
+      return const Icon(Icons.no_encryption);
     }
   }
 
@@ -440,14 +440,14 @@ class _ImprovDialogState extends State<ImprovDialog> {
             child: Stack(
               children: [
                 Align(
-                  alignment: Alignment(-1, 0),
+                  alignment: const Alignment(-1, 0),
                   child: Text(AP["name"]),
                 ),
                 Align(
-                    alignment: Alignment(0.6, 0),
+                    alignment: const Alignment(0.6, 0),
                     child: _getWifiIcon(AP["RSSI"])),
                 Align(
-                    alignment: Alignment(0.8, 0),
+                    alignment: const Alignment(0.8, 0),
                     child: _getEncIcon(AP["enc"])),
               ],
             )));
@@ -488,7 +488,7 @@ class _ImprovDialogState extends State<ImprovDialog> {
             ),
             onChanged: (value) => controller.setPassword(value),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           Tooltip(
             message:
                 "Pass WiFi credentials to the Improv device, may trigger a reboot on success",
@@ -509,7 +509,7 @@ class _ImprovDialogState extends State<ImprovDialog> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-            icon: Icon(Icons.arrow_back),
+            icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.pushNamedAndRemoveUntil(
                 context, '/home', (route) => false)),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -517,7 +517,7 @@ class _ImprovDialogState extends State<ImprovDialog> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: BoxConstraints(minWidth: 240, maxWidth: 600),
+          constraints: const BoxConstraints(minWidth: 240, maxWidth: 600),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,

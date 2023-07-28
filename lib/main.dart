@@ -32,7 +32,7 @@ class ImprovApp extends StatelessWidget {
       title: 'Improv Wifi',
       initialRoute: '/home',
       routes: {
-        '/home': (context) => ImprovHomePage(
+        '/home': (context) => const ImprovHomePage(
               title: 'Improv Wi-Fi via BLE',
             ),
       },
