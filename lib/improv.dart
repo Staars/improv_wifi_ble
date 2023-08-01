@@ -107,16 +107,23 @@ class Improv extends ChangeNotifier {
     if (val.isEmpty) {
       return;
     }
-    _error = Improverrors.values[val[0]];
     developer.log(
-      "Improv: error state {$_error}",
+      "Improv: error message {$val}",
     );
-    notifyListeners();
+    try {
+      _error = Improverrors.values[val[0]];
+      developer.log(
+        "Improv: error state {$_error}",
+      );
+      notifyListeners();
+    } catch (e) {
+      developer.log("Improv: unexpected error state message: {$val} {$e}");
+    }
   }
 
   void _parseDeviceInfo() {
-    var s = String.fromCharCodes(
-        _msgRXBuffer.getRange(2, _msgRXBuffer.length - 1));
+    var s =
+        String.fromCharCodes(_msgRXBuffer.getRange(2, _msgRXBuffer.length - 1));
     var i = 2;
 
     developer.log("Improv: parse device info: " + s);
@@ -138,10 +145,13 @@ class Improv extends ChangeNotifier {
   void _parseAPInfo() {
     if (_msgRXBuffer.length < 4) {
       developer.log(APList.toString());
+      if (_msgRXBuffer[1] == 0) {
+        developer.log("AP list complete");
+      }
       return;
     }
-    var s = String.fromCharCodes(
-        _msgRXBuffer.getRange(2, _msgRXBuffer.length - 1));
+    var s =
+        String.fromCharCodes(_msgRXBuffer.getRange(2, _msgRXBuffer.length - 1));
     var i = 2;
     var AP = {};
     AP['name'] = String.fromCharCodes(
@@ -231,7 +241,6 @@ class Improv extends ChangeNotifier {
     developer.log("Improv: did discover services");
     for (BluetoothService s in bluetoothServices) {
       if (s.serviceUuid == _svcUUID) {
-        // _svc = s;
         _chrs = s.characteristics;
         developer.log("Improv: got characteristics");
       }
@@ -248,26 +257,24 @@ class Improv extends ChangeNotifier {
           developer.log("Improv: supports identify did not send data");
         }
       } else if (c.characteristicUuid == _currentStateUUID) {
-        List<int> value = await c.read();
-        _getImprovState(value);
-        notifyListeners();
         developer.log("Improv: subscribe to characteristic: current state");
         c.onValueReceived.listen((value) {
           _getImprovState(value);
         });
         await c.setNotifyValue(true);
+        await c.read();
       } else if (c.characteristicUuid == _errorStateUUID) {
         developer.log("Improv: subscribe to characteristic: error state");
+        await c.setNotifyValue(true);
         c.onValueReceived.listen((value) {
           _getErrorState(value);
         });
-        await c.setNotifyValue(true);
       } else if (c.characteristicUuid == _RPCResultUUID) {
         developer.log("Improv: subscribe to characteristic: RPC result");
+        await c.setNotifyValue(true);
         c.onValueReceived.listen((value) {
           _getRPCResult(value);
         });
-        await c.setNotifyValue(true);
       }
     }
     Future.delayed(const Duration(milliseconds: 500), () {
