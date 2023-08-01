@@ -9,6 +9,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:improv_wifi_ble/main.dart';
 
 enum improvState { _, Authorization, Authorized, Provisioning, Provisioned }
 
@@ -37,6 +38,14 @@ class Improv extends ChangeNotifier {
     if (!_disposed) {
       super.notifyListeners();
     }
+  }
+
+  void _showMessage(String message) {
+    final snackBar = SnackBar(
+      content: Text(message),
+      duration: Duration(seconds: 2),
+    );
+    snackBarInfo.currentState?.showSnackBar(snackBar);
   }
 
   // final FlutterBluePlus flutterBlue = FlutterBluePlus;
@@ -115,6 +124,7 @@ class Improv extends ChangeNotifier {
       developer.log(
         "Improv: error state {$_error}",
       );
+      _showMessage("error state {$_error}");
       notifyListeners();
     } catch (e) {
       developer.log("Improv: unexpected error state message: {$val} {$e}");
@@ -147,6 +157,7 @@ class Improv extends ChangeNotifier {
       developer.log(APList.toString());
       if (_msgRXBuffer[1] == 0) {
         developer.log("AP list complete");
+        _showMessage("AP list complete ...");
       }
       return;
     }
@@ -162,8 +173,6 @@ class Improv extends ChangeNotifier {
     i += _msgRXBuffer[i] + 1;
     AP['enc'] = String.fromCharCodes(
         _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
-
-    // AP['isExpanded'] = false;
 
     APList.removeWhere(
         (element) => element["name"] == AP["name"]); // remove duplicates
@@ -211,6 +220,7 @@ class Improv extends ChangeNotifier {
         break;
       default:
         developer.log("Improv: unknown RPC result {$val}");
+        _showMessage("Error: unknown command received");
     }
     _msgRXBuffer = [];
     notifyListeners();
@@ -305,11 +315,13 @@ class Improv extends ChangeNotifier {
   void requestDeviceInfo() {
     _writeRPCCommand(_makePayload([3, 0]));
     developer.log("Improv: Request device info ...");
+    _showMessage("Request device info ...");
   }
 
   void requestWifiScan() {
     _writeRPCCommand(_makePayload([4, 0]));
     developer.log("Improv: Request Wifi scan ... ");
+    _showMessage("Request Wifi scan ...");
   }
 
   void setSSID(String ssid) {
@@ -339,6 +351,7 @@ class Improv extends ChangeNotifier {
     command.add(_getChecksum(command));
     _writeRPCCommand(Uint8List.fromList(command));
     developer.log("Start commissioning ... {$command}");
+    _showMessage("Start commissioning ...");
   }
 }
 
@@ -513,37 +526,40 @@ class _ImprovDialogState extends State<ImprovDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                context, '/home', (route) => false)),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: const Text('Commissioning'),
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 240, maxWidth: 600),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              ...[
-                SvgPicture.asset(assetName,
-                    semanticsLabel: 'Improv Logo', width: 150, height: 150),
-                _showDevInfo(context),
-                _currentDialog(context),
-                _showShowScan(context),
-              ].expand(
-                (widget) => [
-                  widget,
-                  const SizedBox(
-                    height: 24,
-                  )
-                ],
-              )
-            ],
+    return ScaffoldMessenger(
+      key: snackBarInfo,
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                  context, '/home', (route) => false)),
+          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          title: const Text('Commissioning'),
+        ),
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 240, maxWidth: 600),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                ...[
+                  SvgPicture.asset(assetName,
+                      semanticsLabel: 'Improv Logo', width: 150, height: 150),
+                  _showDevInfo(context),
+                  _currentDialog(context),
+                  _showShowScan(context),
+                ].expand(
+                  (widget) => [
+                    widget,
+                    const SizedBox(
+                      height: 24,
+                    )
+                  ],
+                )
+              ],
+            ),
           ),
         ),
       ),
