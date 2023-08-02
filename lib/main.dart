@@ -6,8 +6,6 @@ import 'package:permission_handler/permission_handler.dart';
 
 import 'scan.dart';
 
-final snackBarInfo = GlobalKey<ScaffoldMessengerState>();
-
 void main() {
   if (Platform.isAndroid) {
     WidgetsFlutterBinding.ensureInitialized();

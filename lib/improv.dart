@@ -22,6 +22,8 @@ enum Improverrors {
   _
 }
 
+final snackBarInfo = GlobalKey<ScaffoldMessengerState>();
+
 class Improv extends ChangeNotifier {
   Improv({Key? key, required this.device});
 
@@ -339,6 +341,12 @@ class Improv extends ChangeNotifier {
     requestWifiScan();
   }
 
+  int getStepperIdx() {
+    // int stepperIdx = _state.index - 1;
+    // if (stepperIdx < 0) stepperIdx = 0;
+    return _state.index;
+  }
+
   void submitCredentials() {
     List<int> ssidBytes = utf8.encode(_ssid);
     List<int> passwordBytes = utf8.encode(_password);
@@ -494,34 +502,73 @@ class _ImprovDialogState extends State<ImprovDialog> {
   }
 
   Widget _currentDialog(BuildContext context) {
-    switch (controller._state) {
-      case improvState.Authorization:
-      //   return Text("");
-      case improvState.Authorized:
-        return Column(children: [
-          _SSIDSelector(context),
-          TextFormField(
-            decoration: const InputDecoration(
-              filled: true,
-              hintText: 'Enter Password...',
-              labelText: 'Password',
+    return Stepper(
+      currentStep: controller.getStepperIdx(),
+      controlsBuilder: (context, _) {
+        return Row(
+          children: <Widget>[
+            Container(),
+            Container(),
+          ],
+        );
+      },
+      steps: <Step>[
+        const Step(
+            title: Text("Authorization"),
+            content: Text("Confirm authorization on device")),
+        Step(
+          title: const Text('Authorized'),
+          content: Column(children: [
+            _SSIDSelector(context),
+            TextFormField(
+              decoration: const InputDecoration(
+                filled: true,
+                hintText: 'Enter Password...',
+                labelText: 'Password',
+              ),
+              onChanged: (value) => controller.setPassword(value),
             ),
-            onChanged: (value) => controller.setPassword(value),
-          ),
-          const SizedBox(height: 20),
-          Tooltip(
-            message:
-                "Pass WiFi credentials to the Improv device, may trigger a reboot on success",
-            child: ElevatedButton(
-                onPressed: () {
-                  controller.submitCredentials();
-                },
-                child: const Text("Submit credentials")),
-          ),
-        ]);
-      default:
-        return (Text(controller.statusMessage()));
-    }
+            const SizedBox(height: 20),
+            Tooltip(
+              message:
+                  "Pass WiFi credentials to the Improv device, may trigger a reboot on success",
+              child: ElevatedButton(
+                  onPressed: () {
+                    controller.submitCredentials();
+                  },
+                  child: const Text("Submit credentials")),
+            ),
+          ]),
+        ),
+        Step(
+          title: const Text('Pass credentials'),
+          content: Column(children: [
+            Container(
+              alignment: Alignment.centerLeft,
+              child: Text(controller.statusMessage()),
+            ),
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation(Colors.grey),
+            ),
+          ]),
+        ),
+        Step(
+          title: const Text('Provisioning'),
+          content: Column(children: [
+            Container(
+              alignment: Alignment.centerLeft,
+              child: Text(controller.statusMessage()),
+            ),
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation(Colors.grey),
+            ),
+          ]),
+        ),
+        const Step(
+            title: Text("Done!"),
+            content: Text("The device may have done a reboot.")),
+      ],
+    );
   }
 
   @override
@@ -538,8 +585,9 @@ class _ImprovDialogState extends State<ImprovDialog> {
           title: const Text('Commissioning'),
         ),
         body: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 240, maxWidth: 600),
+          child: SingleChildScrollView(
+            //   constraints: const BoxConstraints(
+            //       minWidth: 240, maxWidth: 600, maxHeight: 1200),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
