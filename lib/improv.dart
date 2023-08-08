@@ -5,13 +5,20 @@
 import 'dart:developer' as developer;
 import 'dart:typed_data';
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:improv_wifi_ble/main.dart';
 
-enum improvState { _, Authorization, Authorized, Provisioning, Provisioned }
+enum improvState {
+  _,
+  Authorization,
+  Authorized,
+  Provisioning,
+  Provisioned,
+  Done
+}
 
 enum Improverrors {
   noError,
@@ -45,7 +52,7 @@ class Improv extends ChangeNotifier {
   void _showMessage(String message) {
     final snackBar = SnackBar(
       content: Text(message),
-      duration: Duration(seconds: 2),
+      duration: const Duration(seconds: 2),
     );
     snackBarInfo.currentState?.showSnackBar(snackBar);
   }
@@ -60,12 +67,16 @@ class Improv extends ChangeNotifier {
   List<BluetoothCharacteristic> _chrs = [];
   String _ssid = '';
   String _password = '';
+  String _deviceURL = '';
+  bool _deviceCommissioned = false;
   int _currentReceiveCommand = -1;
   int _currentReceiveBytesLeft = 0;
   final Map _deviceInfo = {};
   List<Map> APList = [];
   final String _wifiScan = "";
   List<int> _msgRXBuffer = [];
+  late StreamSubscription<BluetoothConnectionState>
+      _connectionStateSubscription;
 
   static final Guid _svcUUID = Guid('00467768-6228-2272-4663-277478268000');
   static final Guid _currentStateUUID =
@@ -108,6 +119,9 @@ class Improv extends ChangeNotifier {
     }
     int i = val[0];
     _state = improvState.values[i];
+    if (_state == improvState.Provisioned) {
+      _deviceCommissioned = true;
+    }
     developer.log(
       "Improv: current state {$i} {$_state}",
     );
@@ -126,11 +140,22 @@ class Improv extends ChangeNotifier {
       developer.log(
         "Improv: error state {$_error}",
       );
-      _showMessage("error state {$_error}");
+      _showMessage(getErrorMessage());
       notifyListeners();
     } catch (e) {
       developer.log("Improv: unexpected error state message: {$val} {$e}");
     }
+  }
+
+  void _parseURLInfo() {
+    var s =
+        String.fromCharCodes(_msgRXBuffer.getRange(2, _msgRXBuffer.length - 1));
+    var i = 2;
+
+    developer.log("Improv: parse URL info: " + s);
+    _deviceURL = String.fromCharCodes(
+        _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
+    notifyListeners();
   }
 
   void _parseDeviceInfo() {
@@ -249,6 +274,15 @@ class Improv extends ChangeNotifier {
     developer.log("Improv: will connect to {$device.name}");
     await device.connect();
     developer.log("Improv: did connect to {$device.name}");
+
+    _connectionStateSubscription = device.connectionState.listen((state) {
+      developer.log("Improv: connection state {$state}");
+      if (state == BluetoothConnectionState.disconnected) {
+        _state = improvState.Done;
+        notifyListeners();
+      }
+    });
+
     List<BluetoothService> bluetoothServices = await device.discoverServices();
     developer.log("Improv: did discover services");
     for (BluetoothService s in bluetoothServices) {
@@ -310,6 +344,23 @@ class Improv extends ChangeNotifier {
     }
   }
 
+  String getErrorMessage() {
+    switch (_error) {
+      case Improverrors.noError:
+        return "No error.";
+      case Improverrors.invalidPacket:
+        return "RPC packet was malformed/invalid";
+      case Improverrors.unknownCommand:
+        return "The command sent is unknown";
+      case Improverrors.connectNotPossible:
+        return "The credentials have been received and an attempt to connect to the network has failed";
+      case Improverrors.notAuthorized:
+        return "Credentials were sent via RPC but the Improv service is not authorized";
+      default:
+        return "!! Unknown error !!";
+    }
+  }
+
   void identify() {
     _writeRPCCommand(_makePayload([2, 0]));
   }
@@ -342,9 +393,9 @@ class Improv extends ChangeNotifier {
   }
 
   int getStepperIdx() {
-    // int stepperIdx = _state.index - 1;
-    // if (stepperIdx < 0) stepperIdx = 0;
-    return _state.index;
+    int stepperIdx = _state.index - 1;
+    if (stepperIdx < 0) stepperIdx = 0;
+    return stepperIdx;
   }
 
   void submitCredentials() {
@@ -411,7 +462,9 @@ class _ImprovDialogState extends State<ImprovDialog> {
   }
 
   Widget _showShowScan(BuildContext context) {
-    if (controller._wifiScan == "") {
+    if (controller._wifiScan == "" &&
+        controller.device.connectionState ==
+            BluetoothConnectionState.connected) {
       return Column(children: [
         Tooltip(
           message: "Ask the Improv device to scan for WiFi access points",
@@ -501,6 +554,28 @@ class _ImprovDialogState extends State<ImprovDialog> {
     }
   }
 
+  Step _checkSuccess() {
+    if (controller._deviceCommissioned == true) {
+      return Step(
+          title: const Text("Done!"),
+          content: Column(
+            children: [
+              const Text(
+                  "The device has disconnected and may have done a reboot."),
+              controller._deviceURL != ""
+                  ? const Text("")
+                  : Text(controller._deviceURL)
+            ],
+          ));
+    } else {
+      return const Step(
+        title: Text("Done!"),
+        content: Text(
+            "Unexpected device disconnect, please return to HOMESCREEN"),
+      );
+    }
+  }
+
   Widget _currentDialog(BuildContext context) {
     return Stepper(
       currentStep: controller.getStepperIdx(),
@@ -547,7 +622,7 @@ class _ImprovDialogState extends State<ImprovDialog> {
               alignment: Alignment.centerLeft,
               child: Text(controller.statusMessage()),
             ),
-            CircularProgressIndicator(
+            const CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation(Colors.grey),
             ),
           ]),
@@ -559,14 +634,9 @@ class _ImprovDialogState extends State<ImprovDialog> {
               alignment: Alignment.centerLeft,
               child: Text(controller.statusMessage()),
             ),
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation(Colors.grey),
-            ),
           ]),
         ),
-        const Step(
-            title: Text("Done!"),
-            content: Text("The device may have done a reboot.")),
+        _checkSuccess(),
       ],
     );
   }

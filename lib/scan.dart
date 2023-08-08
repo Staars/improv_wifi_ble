@@ -8,7 +8,7 @@ import 'improv.dart';
 import 'dart:developer' as developer;
 
 class ScannerScreen extends StatefulWidget {
-  ScannerScreen({Key? key}) : super(key: key);
+  const ScannerScreen({Key? key}) : super(key: key);
 
   @override
   _ScannerScreenState createState() => _ScannerScreenState();
