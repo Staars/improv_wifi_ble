@@ -10,6 +10,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 enum ImprovState {
   _,
@@ -388,6 +389,15 @@ class Improv extends ChangeNotifier {
     _password = password;
   }
 
+  _launchURLBrowser() async {
+    var url = Uri.parse("http://$_deviceURL");
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+
   void startWifiScan() {
     // APList = [];
     requestWifiScan();
@@ -560,12 +570,17 @@ class _ImprovDialogState extends State<ImprovDialog> {
       return Step(
           title: const Text("Done!"),
           content: Column(
-            children: [
+            children: <Widget>[
               const Text(
                   "The device has disconnected and may have done a reboot."),
-              controller._deviceURL != ""
-                  ? const Text("")
-                  : Text(controller._deviceURL)
+              const Text(
+                  "Give the device some seconds to reboot and then you can try to open the link below:"),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: controller._launchURLBrowser,
+                child: Text(controller._deviceURL),
+              ),
+              const SizedBox(height: 20),
             ],
           ));
     } else {
