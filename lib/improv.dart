@@ -11,16 +11,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-enum improvState {
+enum ImprovState {
   _,
-  Authorization,
-  Authorized,
-  Provisioning,
-  Provisioned,
-  Done
+  authorization,
+  authorized,
+  provisioning,
+  provisioned,
+  done
 }
 
-enum Improverrors {
+enum ImprovErrors {
   noError,
   invalidPacket,
   unknownCommand,
@@ -61,8 +61,8 @@ class Improv extends ChangeNotifier {
   final BluetoothDevice device;
   bool connected = true;
   bool supportsIdentify = false;
-  improvState _state = improvState._;
-  Improverrors _error = Improverrors.noError;
+  ImprovState _state = ImprovState._;
+  ImprovErrors _error = ImprovErrors.noError;
   // BluetoothService? _svc;
   List<BluetoothCharacteristic> _chrs = [];
   String _ssid = '';
@@ -118,8 +118,8 @@ class Improv extends ChangeNotifier {
       return;
     }
     int i = val[0];
-    _state = improvState.values[i];
-    if (_state == improvState.Provisioned) {
+    _state = ImprovState.values[i];
+    if (_state == ImprovState.provisioned) {
       _deviceCommissioned = true;
     }
     developer.log(
@@ -136,7 +136,7 @@ class Improv extends ChangeNotifier {
       "Improv: error message {$val}",
     );
     try {
-      _error = Improverrors.values[val[0]];
+      _error = ImprovErrors.values[val[0]];
       developer.log(
         "Improv: error state {$_error}",
       );
@@ -152,7 +152,7 @@ class Improv extends ChangeNotifier {
         String.fromCharCodes(_msgRXBuffer.getRange(2, _msgRXBuffer.length - 1));
     var i = 2;
 
-    developer.log("Improv: parse URL info: " + s);
+    developer.log("Improv: parse URL info: $s");
     _deviceURL = String.fromCharCodes(
         _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
     notifyListeners();
@@ -163,7 +163,7 @@ class Improv extends ChangeNotifier {
         String.fromCharCodes(_msgRXBuffer.getRange(2, _msgRXBuffer.length - 1));
     var i = 2;
 
-    developer.log("Improv: parse device info: " + s);
+    developer.log("Improv: parse device info: $s");
     _deviceInfo['firmware'] = String.fromCharCodes(
         _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
     i += _msgRXBuffer[i] + 1;
@@ -206,7 +206,7 @@ class Improv extends ChangeNotifier {
 
     APList.add(AP);
 
-    developer.log("Improv: parse AP info: " + s);
+    developer.log("Improv: parse AP info: $s");
   }
 
   void _getRPCResult(List<int> val) {
@@ -238,6 +238,7 @@ class Improv extends ChangeNotifier {
     }
     switch (_msgRXBuffer[0]) {
       case 1:
+        _parseURLInfo();
         break;
       case 3:
         _parseDeviceInfo();
@@ -277,8 +278,8 @@ class Improv extends ChangeNotifier {
 
     _connectionStateSubscription = device.connectionState.listen((state) {
       developer.log("Improv: connection state {$state}");
-      if (state == BluetoothConnectionState.disconnected) {
-        _state = improvState.Done;
+      if (state != BluetoothConnectionState.connected) {
+        _state = ImprovState.done;
         notifyListeners();
       }
     });
@@ -331,13 +332,13 @@ class Improv extends ChangeNotifier {
 
   String statusMessage() {
     switch (_state) {
-      case improvState.Authorization:
+      case ImprovState.authorization:
         return "Awaiting authorization via physical interaction.";
-      case improvState.Authorized:
+      case ImprovState.authorized:
         return "Ready to accept credentials.";
-      case improvState.Provisioning:
+      case ImprovState.provisioning:
         return "Credentials received, attempt to connect.";
-      case improvState.Provisioned:
+      case ImprovState.provisioned:
         return "Connection successful.";
       default:
         return "!! Unknown state !!";
@@ -346,15 +347,15 @@ class Improv extends ChangeNotifier {
 
   String getErrorMessage() {
     switch (_error) {
-      case Improverrors.noError:
+      case ImprovErrors.noError:
         return "No error.";
-      case Improverrors.invalidPacket:
+      case ImprovErrors.invalidPacket:
         return "RPC packet was malformed/invalid";
-      case Improverrors.unknownCommand:
+      case ImprovErrors.unknownCommand:
         return "The command sent is unknown";
-      case Improverrors.connectNotPossible:
+      case ImprovErrors.connectNotPossible:
         return "The credentials have been received and an attempt to connect to the network has failed";
-      case Improverrors.notAuthorized:
+      case ImprovErrors.notAuthorized:
         return "Credentials were sent via RPC but the Improv service is not authorized";
       default:
         return "!! Unknown error !!";
@@ -380,7 +381,7 @@ class Improv extends ChangeNotifier {
   void setSSID(String ssid) {
     _ssid = ssid;
     notifyListeners();
-    developer.log("SSID is now: " + _ssid);
+    developer.log("SSID is now: $_ssid");
   }
 
   void setPassword(String password) {
@@ -570,8 +571,8 @@ class _ImprovDialogState extends State<ImprovDialog> {
     } else {
       return const Step(
         title: Text("Done!"),
-        content: Text(
-            "Unexpected device disconnect, please return to HOMESCREEN"),
+        content:
+            Text("Unexpected device disconnect, please return to HOMESCREEN"),
       );
     }
   }

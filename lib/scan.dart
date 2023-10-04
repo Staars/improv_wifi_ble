@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -86,9 +87,13 @@ class _ScannerScreenState extends State<ScannerScreen> {
 }
 
 class DeviceScreen extends StatelessWidget {
-  const DeviceScreen({Key? key, required this.device}) : super(key: key);
+  DeviceScreen({Key? key, required this.device}) : super(key: key);
 
   final BluetoothDevice device;
+  final Map<DeviceIdentifier, StreamController<bool>> isDiscoveringServices =
+      {};
+  final Map<DeviceIdentifier, StreamController<List<BluetoothService>>>
+      servicesStream = {};
 
   List<int> _getRandomBytes() {
     final math = Random();
@@ -140,7 +145,7 @@ class DeviceScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(device.name),
+        title: Text(device.platformName),
         actions: <Widget>[
           StreamBuilder<BluetoothConnectionState>(
             stream: device.connectionState,
@@ -180,7 +185,7 @@ class DeviceScreen extends StatelessWidget {
           children: <Widget>[
             StreamBuilder<BluetoothConnectionState>(
               stream: device.connectionState,
-              initialData: BluetoothConnectionState.connecting,
+              initialData: BluetoothConnectionState.disconnected,
               builder: (c, snapshot) => ListTile(
                 leading: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -202,9 +207,9 @@ class DeviceScreen extends StatelessWidget {
                 ),
                 title: Text(
                     'Device is ${snapshot.data.toString().split('.')[1]}.'),
-                subtitle: Text('${device.id}'),
+                subtitle: Text('${device.remoteId}'),
                 trailing: StreamBuilder<bool>(
-                  stream: device.isDiscoveringServices,
+                  stream: isDiscoveringServices[device.remoteId]!.stream,
                   initialData: false,
                   builder: (c, snapshot) => IndexedStack(
                     index: snapshot.data! ? 1 : 0,
@@ -241,7 +246,7 @@ class DeviceScreen extends StatelessWidget {
               ),
             ),
             StreamBuilder<List<BluetoothService>>(
-              stream: device.services,
+              stream: servicesStream[device.remoteId]!.stream,
               initialData: const [],
               builder: (c, snapshot) {
                 return Column(

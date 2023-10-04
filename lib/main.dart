@@ -66,7 +66,7 @@ class ImprovHomePage extends StatefulWidget {
 class _ImprovHomePageState extends State<ImprovHomePage> {
   void _navigateToNextScreen(BuildContext context) {
     Navigator.of(context)
-        .push(MaterialPageRoute(builder: (context) => ScannerScreen()));
+        .push(MaterialPageRoute(builder: (context) => const ScannerScreen()));
   }
 
   @override

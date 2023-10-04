@@ -13,23 +13,23 @@ class ScanResultTile extends StatelessWidget {
   final VoidCallback? onTap;
 
   Widget _buildTitle(BuildContext context) {
-    if (result.device.localName.isNotEmpty) {
+    if (result.device.platformName.isNotEmpty) {
       return Column(
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            result.device.name,
+            result.device.platformName,
             overflow: TextOverflow.ellipsis,
           ),
           Text(
-            result.device.id.toString(),
+            result.device.remoteId.toString(),
             style: Theme.of(context).textTheme.bodySmall,
           )
         ],
       );
     } else {
-      return Text(result.device.id.toString());
+      return Text(result.device.remoteId.toString());
     }
   }
 
@@ -172,7 +172,7 @@ class CharacteristicTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<int>>(
-      stream: characteristic.value,
+      stream: characteristic.lastValueStream,
       initialData: characteristic.lastValue,
       builder: (c, snapshot) {
         final value = snapshot.data;
@@ -250,7 +250,7 @@ class DescriptorTile extends StatelessWidget {
         ],
       ),
       subtitle: StreamBuilder<List<int>>(
-        stream: descriptor.value,
+        stream: descriptor.onValueReceived,
         initialData: descriptor.lastValue,
         builder: (c, snapshot) => Text(snapshot.data.toString()),
       ),
