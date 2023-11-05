@@ -148,6 +148,20 @@ class Improv extends ChangeNotifier {
     }
   }
 
+  List<String> _getStringsFromMessage() {
+    var start = 2;
+    var end = _msgRXBuffer[start] + start + 1;
+    List<String> items = [];
+    while (start < _msgRXBuffer.length && end < _msgRXBuffer.length) {
+      if (start < _msgRXBuffer.length && end < _msgRXBuffer.length) {
+        items.add(String.fromCharCodes(_msgRXBuffer.getRange(start + 1, end)));
+        start += _msgRXBuffer[start] + 1;
+        end = _msgRXBuffer[start] + start + 1;
+      }
+    }
+    return items;
+  }
+
   void _parseURLInfo() {
     var s =
         String.fromCharCodes(_msgRXBuffer.getRange(2, _msgRXBuffer.length - 1));
@@ -156,28 +170,27 @@ class Improv extends ChangeNotifier {
     developer.log("Improv: parse URL info: $s");
     _deviceURL = String.fromCharCodes(
         _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
-    notifyListeners();
+    _deviceCommissioned = true;
+    // notifyListeners();
   }
 
   void _parseDeviceInfo() {
     var s =
         String.fromCharCodes(_msgRXBuffer.getRange(2, _msgRXBuffer.length - 1));
-    var i = 2;
-
     developer.log("Improv: parse device info: $s");
-    _deviceInfo['firmware'] = String.fromCharCodes(
-        _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
-    i += _msgRXBuffer[i] + 1;
-    _deviceInfo['version'] = String.fromCharCodes(
-        _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
-    i += _msgRXBuffer[i] + 1;
-    _deviceInfo['chip'] = String.fromCharCodes(
-        _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
-    i += _msgRXBuffer[i] + 1;
-    _deviceInfo['name'] = String.fromCharCodes(
-        _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
+    var items = _getStringsFromMessage();
+    var length = items.length;
+    if (length != 4) {
+      developer.log("Improv: packet error, expected 4 string, got $length");
+      return;
+    }
+    _deviceInfo['firmware'] = items[0];
+    _deviceInfo['version'] = items[1];
+    _deviceInfo['chip'] = items[2];
+    _deviceInfo['name'] = items[3];
+
     developer.log(_deviceInfo.toString());
-    notifyListeners();
+    // notifyListeners();
   }
 
   void _parseAPInfo() {
@@ -191,16 +204,16 @@ class Improv extends ChangeNotifier {
     }
     var s =
         String.fromCharCodes(_msgRXBuffer.getRange(2, _msgRXBuffer.length - 1));
-    var i = 2;
+    var items = _getStringsFromMessage();
+    var length = items.length;
+    if (length != 3) {
+      developer.log("Improv: packet error, expected 3 string, got $length");
+      return;
+    }
     var AP = {};
-    AP['name'] = String.fromCharCodes(
-        _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
-    i += _msgRXBuffer[i] + 1;
-    AP['RSSI'] = String.fromCharCodes(
-        _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
-    i += _msgRXBuffer[i] + 1;
-    AP['enc'] = String.fromCharCodes(
-        _msgRXBuffer.getRange(i + 1, _msgRXBuffer[i] + i + 1));
+    AP['name'] = items[0];
+    AP['RSSI'] = items[1];
+    AP['enc'] = items[2];
 
     APList.removeWhere(
         (element) => element["name"] == AP["name"]); // remove duplicates
@@ -208,6 +221,20 @@ class Improv extends ChangeNotifier {
     APList.add(AP);
 
     developer.log("Improv: parse AP info: $s");
+  }
+
+  bool _checkMessage() {
+    if (_msgRXBuffer.isEmpty) {
+      return false;
+    }
+    var checksum = 0;
+    var lastByte = _msgRXBuffer.last;
+    for (int value in _msgRXBuffer.getRange(0, _msgRXBuffer.length - 1)) {
+      checksum += value;
+    }
+    checksum = checksum & 0xff;
+    developer.log("Improv: checksum computed $checksum, last byte $lastByte");
+    return (checksum == lastByte);
   }
 
   void _getRPCResult(List<int> val) {
@@ -226,30 +253,27 @@ class Improv extends ChangeNotifier {
       }
     } else {
       _msgRXBuffer.addAll(val);
-      if (_msgRXBuffer[1] > _msgRXBuffer.length - 2) {
+      if (_msgRXBuffer[1] > (_msgRXBuffer.length - 2)) {
+        var bytesLeft = _msgRXBuffer[1] - (_msgRXBuffer.length - 1);
+        developer.log("Improv: RPC need more data, bytes left {$bytesLeft}");
         return;
       }
     }
-    if (_msgRXBuffer[1] != _msgRXBuffer.length - 3) {
-      developer.log("Improv: RPC wrong message buffer size, discarding ... ");
-      developer.log(_msgRXBuffer[1].toString());
-      developer.log((_msgRXBuffer.length - 3).toString());
-      _msgRXBuffer = [];
-      return;
-    }
-    switch (_msgRXBuffer[0]) {
-      case 1:
-        _parseURLInfo();
-        break;
-      case 3:
-        _parseDeviceInfo();
-        break;
-      case 4:
-        _parseAPInfo();
-        break;
-      default:
-        developer.log("Improv: unknown RPC result {$val}");
-        _showMessage("Error: unknown command received");
+    if (_checkMessage()) {
+      switch (_msgRXBuffer[0]) {
+        case 1:
+          _parseURLInfo();
+          break;
+        case 3:
+          _parseDeviceInfo();
+          break;
+        case 4:
+          _parseAPInfo();
+          break;
+        default:
+          developer.log("Improv: unknown RPC result {$val}");
+          _showMessage("Error: unknown command received");
+      }
     }
     _msgRXBuffer = [];
     notifyListeners();
@@ -306,23 +330,26 @@ class Improv extends ChangeNotifier {
         }
       } else if (c.characteristicUuid == _currentStateUUID) {
         developer.log("Improv: subscribe to characteristic: current state");
-        c.onValueReceived.listen((value) {
+        final subscription = c.onValueReceived.listen((value) {
           _getImprovState(value);
         });
+        device.cancelWhenDisconnected(subscription);
         await c.setNotifyValue(true);
         await c.read();
       } else if (c.characteristicUuid == _errorStateUUID) {
         developer.log("Improv: subscribe to characteristic: error state");
-        await c.setNotifyValue(true);
-        c.onValueReceived.listen((value) {
+        final subscription = c.onValueReceived.listen((value) {
           _getErrorState(value);
         });
+        device.cancelWhenDisconnected(subscription);
+        await c.setNotifyValue(true);
       } else if (c.characteristicUuid == _RPCResultUUID) {
         developer.log("Improv: subscribe to characteristic: RPC result");
-        await c.setNotifyValue(true);
-        c.onValueReceived.listen((value) {
+        final subscription = c.onValueReceived.listen((value) {
           _getRPCResult(value);
         });
+        device.cancelWhenDisconnected(subscription);
+        await c.setNotifyValue(true);
       }
     }
     Future.delayed(const Duration(milliseconds: 500), () {
@@ -355,6 +382,7 @@ class Improv extends ChangeNotifier {
       case ImprovErrors.unknownCommand:
         return "The command sent is unknown";
       case ImprovErrors.connectNotPossible:
+        _state = ImprovState.authorized;
         return "The credentials have been received and an attempt to connect to the network has failed";
       case ImprovErrors.notAuthorized:
         return "Credentials were sent via RPC but the Improv service is not authorized";

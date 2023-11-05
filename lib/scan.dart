@@ -149,7 +149,7 @@ class DeviceScreen extends StatelessWidget {
         actions: <Widget>[
           StreamBuilder<BluetoothConnectionState>(
             stream: device.connectionState,
-            initialData: BluetoothConnectionState.connecting,
+            initialData: BluetoothConnectionState.disconnected,
             builder: (c, snapshot) {
               VoidCallback? onPressed;
               String text;
